@@ -1,0 +1,10 @@
+[app]
+name: WeDo
+category: Tests
+icon: icon.png
+desc: WeDo test application
+exec: wedotest.py
+managed: yes
+uuid: 91dceedd-9292-417d-a12f-8ac7eda34267
+version: 1.0.1
+firmware: >=0.9.0

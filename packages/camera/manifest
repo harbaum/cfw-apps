@@ -1,0 +1,15 @@
+[app]
+name: Camera
+category: System
+icon: icon.png
+desc: Camera test application
+exec: camera.py
+managed: yes
+set: 524328 ROBOTICS TXT Discovery Set
+uuid: e07d1f56-811d-4101-b6f9-9143319b14e2
+version: 1.0
+formware: >=0.9.0
+
+[de]
+name: Kamera
+desc: Kamera Test-Applikation

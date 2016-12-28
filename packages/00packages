@@ -1,0 +1,140 @@
+; list of packages
+; this file contains all manifests
+
+[3dprt]
+name: 3Dprint
+category: Tools
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: 3D printer driver app
+exec: 3dprt.py
+managed: yes
+set: 536624 3D-Printer
+model: 3D-Printer
+uuid: dd8a2020-10f7-4d9f-ad2f-2177ce6c60ff
+version: 1.0
+firmware: >=0.9.0
+
+[app_tutorial_1]
+name: Test
+category: Tests
+author: Till Harbaum
+icon: icon.png
+desc: TXT app tutorial #1
+url: https://github.com/ftCommunity/ftcommunity-TXT/wiki/FTC-FW-App-Tutorial-1
+exec: test.py
+managed: yes
+uuid: 191fe5a6-313b-4083-af65-d1ad7fd6d281
+version: 1.0
+firmware: >=0.9.0
+
+[brickly]
+name: Brickly
+category: Tools
+author: Till Harbaum
+icon: icon.png
+desc: Blockly demo
+url: https://developers.google.com/blockly/
+html: index.html
+exec: brickly_app.py
+managed: yes
+uuid: 1f2d90a3-11e9-4a92-955a-73ffaec0fe71
+version: 1.12
+firmware: >=0.9.0
+name_de: Brickly
+desc_de: Blockly-Demo
+html_de: index.html?lang=de
+
+[calc]
+name: Calc
+category: Tools
+icon: icon.png
+desc: A simple calculator
+exec: calc.py
+managed: yes
+uuid: 2093ec3e-e85f-47cb-aebc-3809b482d145
+version: 1.01
+firmware: >=0.9.0
+name_de: Rechner
+desc_de: Ein einfacher Taschenrechner
+
+[camera]
+name: Camera
+category: System
+icon: icon.png
+desc: Camera test application
+exec: camera.py
+managed: yes
+set: 524328 ROBOTICS TXT Discovery Set
+uuid: e07d1f56-811d-4101-b6f9-9143319b14e2
+version: 1.0
+formware: >=0.9.0
+name_de: Kamera
+desc_de: Kamera Test-Applikation
+
+[clock]
+name: Clock
+category: Tools
+icon: icon.png
+desc: A simple clock app
+exec: clock.py
+managed: yes
+uuid: 4fdef96d-4a27-4209-85c6-7786110d9f2f
+version: 1.0
+firmware: >=0.9.0
+
+[jstest]
+name: Joystick
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Joystick test application
+exec: jstest.py
+managed: yes
+uuid: 74a6287b-f6d7-45bd-a467-208052a4a29b
+version: 1.0
+firmware: >=0.9.0
+
+[robolttest]
+name: RoboLT
+category: Tests
+icon: icon.png
+desc: Robo LT test application
+exec: robolttest.py
+managed: yes
+uuid: 3682679c-9438-4516-a528-83de5e27e5e5
+version: 1.0.1
+firmware: >=0.9.0
+
+[wedotest]
+name: WeDo
+category: Tests
+icon: icon.png
+desc: WeDo test application
+exec: wedotest.py
+managed: yes
+uuid: 91dceedd-9292-417d-a12f-8ac7eda34267
+version: 1.0.1
+firmware: >=0.9.0
+
+[widgetgallery]
+name: Gallery
+category: Tests
+icon: icon.png
+desc: QT Widgets gallery
+exec: widgetgallery.py
+managed: yes
+uuid: 94cac4ea-14ef-49a2-a000-20ca5720fb78
+version: 1.0
+firmware: >=0.9.0
+
+[zbartest]
+name: ZBar
+category: Tests
+icon: icon.png
+desc: Demo of ZBAR QR code decoder
+exec: zbartest.py
+managed: yes
+uuid: c2258ee6-b86b-4c52-90b4-0d57d4244aaf
+version: 1.0
+firmware: >=0.9.0

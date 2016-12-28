@@ -1,0 +1,10 @@
+[app]
+name: RoboLT
+category: Tests
+icon: icon.png
+desc: Robo LT test application
+exec: robolttest.py
+managed: yes
+uuid: 3682679c-9438-4516-a528-83de5e27e5e5
+version: 1.0.1
+firmware: >=0.9.0

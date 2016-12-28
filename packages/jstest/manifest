@@ -1,0 +1,11 @@
+[app]
+name: Joystick
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Joystick test application
+exec: jstest.py
+managed: yes
+uuid: 74a6287b-f6d7-45bd-a467-208052a4a29b
+version: 1.0
+firmware: >=0.9.0
