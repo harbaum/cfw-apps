@@ -4,23 +4,20 @@
 
 from TouchStyle import *
 
-# TODO:
-# At startup highlights get lost by rate limit for unknown reason ...
-
-# Wrapper for brickly.py python code. The main purpose of
-# this wrapper is to catch the output of brickly.py and send
-# it to the browser as well as to a local GUI
-
 PORT = 9002
 CLIENT = ""    # any client
 
+FLOAT_FORMAT = "{0:.4f}"    # limit to four digits to keep the output readable
 OUTPUT_DELAY = 0.01
 MAX_HIGHLIGHTS_PER_SEC = 25
 
 import time, sys, asyncio, websockets, queue, pty, json, math 
+import ftrobopy_custom
 
 # the websocket server is a seperate tread for handling the websocket
 class WebsocketServerThread(QThread):
+    command = pyqtSignal(str)
+    
     def __init__(self): 
         super(WebsocketServerThread,self).__init__()
         self.clients = []
@@ -69,6 +66,8 @@ class WebsocketServerThread(QThread):
 
                 if 'speed' in msg:
                     self.speed = int(msg['speed'])
+                if 'command' in msg:
+                    self.command.emit(msg['command'])
 
             except websockets.exceptions.ConnectionClosed:
                 pass
@@ -122,61 +121,44 @@ class io_sink(object):
         #you might want to specify some extra behavior here.
         pass    
 
+class UserInterrupt(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return "UserInterrupt: " + repr(self.value)
+
 # another sperate thread executes the code itself
 class RunThread(QThread):
     def __init__(self, ws_thread, ui_queue):
         super(RunThread,self).__init__()
+
         self.ws_thread = ws_thread  # websocket server thread
         self.ui_queue = ui_queue    # output queue to the local gui
 
         # connect to TXT
-        txt_ip = os.environ.get('TXT_IP')
-        self.txt = None
         try:
-            import ftrobopy
-
-            # TXT IP address given explicitly
-            if txt_ip != None:
-                try:
-                    self.txt = ftrobopy.ftrobopy(txt_ip, 65000)
-                except:
-                    self.txt = None
-            else:
-                # check for ftrobopy version
-                if float(ftrobopy.__version__) > 1.56:
-                    # newer version use the "auto" keyword
-                    try:
-                        self.txt = ftrobopy.ftrobopy('auto')
-                    except:
-                        self.txt = None
-                else:
-                    # older versions need to use localhost
-                    try:
-                        self.txt = ftrobopy.ftrobopy("localhost", 65000)
-                    except:
-                        self.txt = None
-
-            if self.txt:
-                # all outputs normal mode
-                self.M = [ self.txt.C_OUTPUT, self.txt.C_OUTPUT,
-                           self.txt.C_OUTPUT, self.txt.C_OUTPUT ]
-                self.I = [ (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
-                           (self.txt.C_SWITCH, self.txt.C_DIGITAL ) ]
-                self.txt.setConfig(self.M, self.I)
-                self.txt.updateConfig()
-                
+            self.txt = ftrobopy_custom.ftrobopy_custom()
         except:
-            self.txt = None   
+            self.txt = None
 
+        if self.txt:
+            # all outputs normal mode
+            self.M = [ self.txt.C_OUTPUT, self.txt.C_OUTPUT,
+                       self.txt.C_OUTPUT, self.txt.C_OUTPUT ]
+            self.I = [ (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ),
+                       (self.txt.C_SWITCH, self.txt.C_DIGITAL ) ]
+            self.txt.setConfig(self.M, self.I)
+            self.txt.updateConfig()
+                
         self.motor = [ None, None, None, None ]
 
-        # redirect stdout, sterr and highlight info to websocket server.
+        # redirect stdout, stderr and highlight info to websocket server.
         # redirect stdout also to the local screen
         sys.stdout = io_sink("stdout", False, self.ws_thread, self.ui_queue)
         sys.stderr = io_sink("stderr", False, self.ws_thread, None)
@@ -186,6 +168,7 @@ class RunThread(QThread):
             print("TXT init failed", file=sys.stderr)
 
     def run(self):
+        self.stop_requested = False
         self.online = False
         path = os.path.dirname(os.path.realpath(__file__))
         fname = os.path.join(path, "brickly.py")
@@ -226,6 +209,9 @@ class RunThread(QThread):
                 code_txt = code_txt.replace("# highlightBlock(", "wrapper.highlightBlock(");
                 code_txt = code_txt.replace("setOutput(", "wrapper.setOutput(");
                 code_txt = code_txt.replace("setMotor(", "wrapper.setMotor(");
+                code_txt = code_txt.replace("wait(", "wrapper.wait(");
+                code_txt = code_txt.replace("print(", "wrapper.print(");
+                code_txt = code_txt.replace("str(", "wrapper.str(");
                 code_txt = code_txt.replace("setMotorOff(", "wrapper.setMotorOff(");
                 code_txt = code_txt.replace("motorHasStopped(", "wrapper.motorHasStopped(");
                 code_txt = code_txt.replace("getInput(", "wrapper.getInput(");
@@ -246,14 +232,52 @@ class RunThread(QThread):
                 
             except SyntaxError as e:
                 print("Syntax error: " + str(e), file=sys.stderr)
+            except UserInterrupt as e:
+                self.highlight.write("interrupted")
             except:
                 print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
 
             self.highlight.write("none")
 
+    def stop(self):
+        self.stop_requested = True
+            
+    def wait(self, duration):
+        # make sure we never pause more than 100ms to be able
+        # to react fast on user interrupts
+        while(duration > 0.1):
+            time.sleep(0.1)
+            duration -= 0.1
+            if self.stop_requested:
+                raise UserInterrupt(42)
+            
+        time.sleep(duration)
+
+    # custom string conversion
+    def str(self, arg):
+        # use custom conversion for float numbers
+        if type(arg) is float:
+            if math.isnan(arg):
+                return "???"   # this doesn't need translation ...
+            else:
+                return FLOAT_FORMAT.format(arg)
+            
+        return str(arg)
+
+    def print(self, *args, **kwargs):
+        argsl = list(args)  # tuples are immutable, so use a list
+
+        # make sure floats are converted using our custom conversion
+        for i in range(len(argsl)):
+            if type(argsl[i]) is float:
+                argsl[i] = self.str(argsl[i])
+
+        # todo: don't call print but push data directly into queue
+        print(*tuple(argsl), **kwargs)
+        
     def setMotor(self,port=0,dir=1,val=0,steps=None):
         # make sure val is in 0..100 range
-        val = max(0, min(100, val))
+        val = max(-100, min(100, val))
         # and scale it to 0 ... 512 range
         pwm_val = int(5.12 * val)
         # apply direction
@@ -372,6 +396,9 @@ class RunThread(QThread):
     # to be enabled on javascript side in the code generation. The delay 
     # limits the load on the browser/client
     def highlightBlock(self, str):
+        if self.stop_requested:
+            raise UserInterrupt(42)
+            
         if not hasattr(self, 'last'):
             self.last = 0
 
@@ -388,7 +415,8 @@ class Application(TouchApplication):
 
         # start the websocket server listening for web clients to connect
         self.ws = WebsocketServerThread()
-        self.ws.start() 
+        self.ws.start()
+        self.ws.command.connect(self.on_command)
 
         # create the empty main window
         w = TouchWindow("Brickly")
@@ -413,6 +441,17 @@ class Application(TouchApplication):
 
         self.ws.stop()
 
+    def on_command(self, str):
+        # handle commands received from browser
+        if str == "run":
+            # clear screen
+            self.txt.clear()
+            # and start thread (again)
+            self.thread.start()
+
+        if str == "stop":
+            self.thread.stop()
+        
     def on_timer(self):
         while not self.ui_queue.empty():
             self.append(self.ui_queue.get())

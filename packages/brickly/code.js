@@ -3,6 +3,7 @@ Code.workspace = null;
 Code.Msg = {};
 Code.speed = 90;        // 90% default speed
 Code.Level = 2;         // GUI level: 1 = beginner, 10 = expert
+Code.connected = false;
 
 function init() {
     // do various global initialization
@@ -128,6 +129,7 @@ function ws_start(initial) {
 	if(evt.data.length) {
             // the message is json encoded
             obj = JSON.parse(evt.data);
+	    
             if(obj.stdout) display_text("<tt><b>"+html_escape(obj.stdout)+"</b></tt>");
             if(obj.stderr) display_text("<font color='red'><tt><b>"+
 					    html_escape(obj.stderr)+"</b></tt></font>");
@@ -135,6 +137,10 @@ function ws_start(initial) {
 		if(obj.highlight == "none") {
 		    display_state(MSG['stateProgramEnded']);
 		    Code.workspace.highlightBlock();
+
+		    // XXX re-enable run button
+		    button_set_state(true, true);
+
 		} else
 		    Code.workspace.highlightBlock(obj.highlight);
 	    }
@@ -158,7 +164,8 @@ function ws_start(initial) {
         // retry if we never were successfully connected
         if(!Code.connected) {
             //try to reconnect in 10ms
-           setTimeout(function(){ws_start(false)}, 10);
+	    console.log("retry");
+            setTimeout(function(){ws_start(false)}, 10);
         } else {
             display_state(MSG['stateDisconnected']);
             Code.connected = false;
@@ -170,25 +177,33 @@ function ws_start(initial) {
 };
 
 function stopCode() {
-    var objDiv = document.getElementById("textArea");
-    Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
     button_set_state(false, false);
 
-    var http = new XMLHttpRequest();
-    http.open("GET", "./brickly_stop.py?pid="+pid);
-    http.setRequestHeader("Content-type", "text/html");
-    http.onreadystatechange = function() {
-        if (http.readyState == XMLHttpRequest.DONE) {
-	    Code.spinner.stop();
-	    
-            if (http.status != 200) {
-		alert("Error " + http.status + "\n" + http.statusText);
-            } else {
+    // we can either terminate the whole brickly app (which will automatically
+    // be restarted on next run. Or we just request the current thread to be
+    // stopped
+    if(false) {
+	var objDiv = document.getElementById("textArea");
+	Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
 
+	var http = new XMLHttpRequest();
+	http.open("GET", "./brickly_stop.py?pid="+pid);
+	http.setRequestHeader("Content-type", "text/html");
+	http.onreadystatechange = function() {
+            if (http.readyState == XMLHttpRequest.DONE) {
+		Code.spinner.stop();
+	    
+		if (http.status != 200) {
+		    alert("Error " + http.status + "\n" + http.statusText);
+		} else {
+		    
+		}
             }
-        }
+	}
+	http.send();
+    } else {
+	Code.ws.send(JSON.stringify( { command: "stop" } ));
     }
-    http.send();
 }
 
 function loadCode(name) {
@@ -271,17 +286,35 @@ function runCode() {
 		    // try to find PID ...
 		    pid = JSON.parse(http.responseText).pid;
 		    
-		    // finally connect to the server
-		    setTimeout(function(){ws_start(true)}, 500);
+		    // finally connect to the server if we are not already
+		    // connected. Otherwise stop spinner since we are done
+		    if(Code.connected) {
+			Code.spinner.stop();
+
+			display_state(MSG['stateConnected']);
+			button_set_state(true, false);
+
+			// send initial speed
+			Code.ws.send(JSON.stringify( { speed: Code.speed } ));
+			
+			// if we are connected, then tell the websocket client to
+			// simply restart. Otherwise the previous send will have
+			// caused the launcher to restart the brickly app
+			Code.ws.send(JSON.stringify( { command: "run" } ));
+		    } else
+			setTimeout(function(){ws_start(true)}, 500);
 		}
             }
 	}
-	
+
 	// POST python as well as xml
+	// transfer current language so it can also be saved
+	// and send connection status
 	http.send('code='+encodeURIComponent(code)+
 		  '&text='+encodeURIComponent(text)+
+		  '&connected='+Code.connected+
 		  '&lang='+lang);
-	}
+    }
 }
 
 function resizeTo(element_name, target_name) {

@@ -47,8 +47,8 @@ var MSG = {
     blockLeft: "linksrum",
     blockRight: "rechtsrum",
 
-    blockMotorStepsMessage: "starte Motor %1 %2 mit %3 für %4 Drehungen",
-    blockMotorStepsToolTip: "Starte einen Motor für eine vorgegebene Anzahl Drehungen",
+    blockMotorStepsMessage: "starte Motor %1 %2 mit %3 für %4 Umdrehungen",
+    blockMotorStepsToolTip: "Starte einen Motor für eine vorgegebene Anzahl Umdrehungen",
 
     blockMotorHasStoppedMessage: "Motor %1 hat gestoppt",
     blockMotorHasStoppedToolTip: "Teste, ob Motor gestoppt hat",

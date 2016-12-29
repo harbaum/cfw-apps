@@ -45,13 +45,20 @@ def launcher_cmd(str, expect_reply=False):
 # system/about/about.py is returned
 current_executable = launcher_cmd("get-app", True)
 
-# some app is running -> stop it
-if current_executable != None and current_executable != "":
-    launcher_cmd("stop-app")
+# check if we received a connection state. This means the browser
+# is connected to the app and we must not restart it
+connected = False
+if "connected" in form:
+    connected = form["connected"].value.lower() == "true"
 
-    # wait for app to be stopped ...
-    while launcher_cmd("get-app", True) != "":
-        time.sleep(0.1)
+if not connected:
+    # some app is running -> stop it
+    if current_executable != None and current_executable != "":
+        launcher_cmd("stop-app")
+
+        # wait for app to be stopped ...
+        while launcher_cmd("get-app", True) != "":
+            time.sleep(0.1)
 
 # save xml if present
 if "text" in form:
@@ -93,8 +100,10 @@ if "code" in form:
         else:
             print(json.dumps( { "pid": 123 } ))
     else:
-        path = os.path.join("user", os.path.basename(os.path.dirname(os.path.realpath(__file__))))
-        launcher_cmd("launch " + os.path.join(path, "brickly_app.py"))
+        if not connected:
+            path = os.path.join("user", os.path.basename(os.path.dirname(os.path.realpath(__file__))))
+            launcher_cmd("launch " + os.path.join(path, "brickly_app.py"))
+            
         print(json.dumps( { "pid": 0 } ))
 else:
     print("Content-Type: application/json")

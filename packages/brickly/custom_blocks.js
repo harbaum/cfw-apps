@@ -295,7 +295,7 @@ var block_sound = {
 Blockly.Python['wait'] = function(block) {
     var value_seconds = Blockly.Python.valueToCode(block, 'seconds', Blockly.Python.ORDER_ATOMIC);
    if(!value_seconds) value_seconds = 0;
-    return 'time.sleep(%1)\n'.replace('%1', value_seconds);
+    return 'wait(%1)\n'.replace('%1', value_seconds);
 };
 
 Blockly.Python['pwm_value'] = function(block) {
