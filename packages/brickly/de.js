@@ -6,6 +6,7 @@ var MSG = {
     stateDisconnected: "getrennt",
     stateConnected: "verbunden",
     stateConnecting: "verbinde...",
+    stateRunning: "läuft...",
     stateProgramEnded: "beendet",
 
     // blocks

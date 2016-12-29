@@ -125,7 +125,7 @@ function ws_start(initial) {
     Code.connected = false;
     
     Code.ws.onmessage = function(evt) {
-	// ignore empty messages (which we use to force waiting for client)
+	// ignore empty messages
 	if(evt.data.length) {
             // the message is json encoded
             obj = JSON.parse(evt.data);
@@ -138,9 +138,7 @@ function ws_start(initial) {
 		    display_state(MSG['stateProgramEnded']);
 		    Code.workspace.highlightBlock();
 
-		    // XXX re-enable run button
 		    button_set_state(true, true);
-
 		} else
 		    Code.workspace.highlightBlock(obj.highlight);
 	    }
@@ -150,7 +148,7 @@ function ws_start(initial) {
     Code.ws.onopen = function(evt) {
 	Code.spinner.stop();
         Code.connected = true;
-        display_state(MSG['stateConnected']);
+        display_state(MSG['stateRunning']);
         button_set_state(true, false);
 
 	// send initial speed
@@ -257,13 +255,8 @@ function runCode() {
 	// preprend current speed settings
 	code = "# speed = " + Code.speed.toString() + "\n" + code;
 
-	var objDiv = document.getElementById("textArea");
-	Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
-
 	// prepare gui for running program
 	display_text_clr();
-	button_set_state(false, true);
-        display_state(MSG['stateConnecting']);
 
 	// generate xml and post it with the python code
 	var xml = Blockly.Xml.workspaceToDom(Code.workspace);
@@ -275,45 +268,48 @@ function runCode() {
 	
 	var text = Blockly.Xml.domToText(xml);
 
-	var http = new XMLHttpRequest();
-	http.open("POST", "./brickly_run.py");
-	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	http.onreadystatechange = function() {
-            if (http.readyState == XMLHttpRequest.DONE) {
-		if (http.status != 200) {
-		    alert("Error " + http.status + "\n" + http.statusText);
-		} else {
-		    // try to find PID ...
-		    pid = JSON.parse(http.responseText).pid;
-		    
-		    // finally connect to the server if we are not already
-		    // connected. Otherwise stop spinner since we are done
-		    if(Code.connected) {
-			Code.spinner.stop();
+	if(Code.connected) {
+	    Code.ws.send(JSON.stringify( { python_code: code } ));
+	    Code.ws.send(JSON.stringify( { blockly_code: text } ));
+	    Code.ws.send(JSON.stringify( { speed: Code.speed } ));
+	    Code.ws.send(JSON.stringify( { command: "run" } ));
 
-			display_state(MSG['stateConnected']);
-			button_set_state(true, false);
+	    display_state(MSG['stateRunning']);
+	    button_set_state(true, false);
+	} else {
+	    // if we aren't connected then we need to start the brickly app on the TXT
+	    // first. This is done by posting the code
+	
+	    button_set_state(false, true);
+            display_state(MSG['stateConnecting']);
+	    
+	    var objDiv = document.getElementById("textArea");
+	    Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
 
-			// send initial speed
-			Code.ws.send(JSON.stringify( { speed: Code.speed } ));
+	    var http = new XMLHttpRequest();
+	    http.open("POST", "./brickly_run.py");
+	    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	    http.onreadystatechange = function() {
+		if (http.readyState == XMLHttpRequest.DONE) {
+		    if (http.status != 200) {
+			alert("Error " + http.status + "\n" + http.statusText);
+		    } else {
+			// try to find PID ...
+			pid = JSON.parse(http.responseText).pid;
 			
-			// if we are connected, then tell the websocket client to
-			// simply restart. Otherwise the previous send will have
-			// caused the launcher to restart the brickly app
-			Code.ws.send(JSON.stringify( { command: "run" } ));
-		    } else
 			setTimeout(function(){ws_start(true)}, 500);
+		    }
 		}
-            }
+	    }
+	    
+	    // POST python as well as xml
+	    // transfer current language so it can also be saved
+	    // and send connection status
+	    http.send('code='+encodeURIComponent(code)+
+		      '&text='+encodeURIComponent(text)+
+		      '&connected='+Code.connected+
+		      '&lang='+lang);
 	}
-
-	// POST python as well as xml
-	// transfer current language so it can also be saved
-	// and send connection status
-	http.send('code='+encodeURIComponent(code)+
-		  '&text='+encodeURIComponent(text)+
-		  '&connected='+Code.connected+
-		  '&lang='+lang);
     }
 }
 

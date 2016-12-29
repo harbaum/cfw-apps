@@ -17,6 +17,8 @@ import ftrobopy_custom
 # the websocket server is a seperate tread for handling the websocket
 class WebsocketServerThread(QThread):
     command = pyqtSignal(str)
+    python_code = pyqtSignal(str)
+    blockly_code = pyqtSignal(str)
     
     def __init__(self): 
         super(WebsocketServerThread,self).__init__()
@@ -66,9 +68,15 @@ class WebsocketServerThread(QThread):
 
                 if 'speed' in msg:
                     self.speed = int(msg['speed'])
-                if 'command' in msg:
+                elif 'command' in msg:
                     self.command.emit(msg['command'])
-
+                elif 'python_code' in msg:
+                    self.python_code.emit(msg['python_code'])
+                elif 'blockly_code' in msg:
+                    self.blockly_code.emit(msg['blockly_code'])
+                else:
+                    print("Unknown cmd", msg, file=sys.stderr)
+                    
             except websockets.exceptions.ConnectionClosed:
                 pass
 
@@ -417,6 +425,8 @@ class Application(TouchApplication):
         self.ws = WebsocketServerThread()
         self.ws.start()
         self.ws.command.connect(self.on_command)
+        self.ws.python_code.connect(self.on_python_code)        # received python code
+        self.ws.blockly_code.connect(self.on_blockly_code)      # received blockly code
 
         # create the empty main window
         w = TouchWindow("Brickly")
@@ -441,6 +451,19 @@ class Application(TouchApplication):
 
         self.ws.stop()
 
+    def write_to_file(self, name, data):
+        path = os.path.dirname(os.path.realpath(__file__))
+        fname = os.path.join(path, name)
+        with open(fname, 'w', encoding="UTF-8") as f:
+            f.write(data)
+            f.close()
+        
+    def on_python_code(self, str):
+        self.write_to_file("brickly.py", str)
+        
+    def on_blockly_code(self, str):
+        self.write_to_file("brickly.xml", str)
+        
     def on_command(self, str):
         # handle commands received from browser
         if str == "run":
