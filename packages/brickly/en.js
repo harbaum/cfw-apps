@@ -9,6 +9,14 @@ var MSG = {
     stateRunning: "running...",
     stateProgramEnded: "ended",
 
+    // the skill system
+    skillToolTip: "Select skill level '%1'",
+    skill1: "beginner",
+    skill2: "junior",
+    skill3: "advanced",
+    skill4: "senior",
+    skill5: "expert",
+
     // blocks
     blockWaitMessage: "wait %1 seconds",
     blockWaitToolTip: "Pause program execution a given time",

@@ -9,6 +9,14 @@ var MSG = {
     stateRunning: "läuft...",
     stateProgramEnded: "beendet",
 
+    // the skill system
+    skillToolTip: "Wähle Erfahrungsgrad '%1' aus",
+    skill1: "Anfänger",
+    skill2: "Junior",
+    skill3: "Fortgeschritten",
+    skill4: "Senior",
+    skill5: "Experte",
+    
     // blocks
     blockWaitMessage: "warte %1 Sekunden",
     blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten",

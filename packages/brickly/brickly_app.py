@@ -7,7 +7,7 @@ from TouchStyle import *
 PORT = 9002
 CLIENT = ""    # any client
 
-FLOAT_FORMAT = "{0:.4f}"    # limit to four digits to keep the output readable
+FLOAT_FORMAT = "{0:.3f}"    # limit to three digits to keep the output readable
 OUTPUT_DELAY = 0.01
 MAX_HIGHLIGHTS_PER_SEC = 25
 
@@ -22,8 +22,6 @@ class WebsocketServerThread(QThread):
     
     def __init__(self): 
         super(WebsocketServerThread,self).__init__()
-        self.clients = []
-        self.queue = queue.Queue()
         self.websocket = None
 
         # initial speed must not be > 90 to prevent rate limit from dropping
@@ -51,16 +49,13 @@ class WebsocketServerThread(QThread):
         
     @asyncio.coroutine
     def handler(self, websocket, path):
-        self.websocket = websocket
-        self.clients.append(websocket)
-
-        # Client has finally connected. First
-        # send all queued messages
-        while not self.queue.empty():
-            yield from self.websocket.send(self.queue.get())
+        # reject any further client besides the first (main) one
+        if self.websocket:
+            return
         
-        # ToDo: keep list of clients, stop
-        # when last client is gone
+        self.websocket = websocket
+
+        # run while client is connected
         while(websocket.open):
             try:
                 msg_str = yield from websocket.recv()
@@ -86,40 +81,32 @@ class WebsocketServerThread(QThread):
         # the websocket is no more ....
         self.websocket = None
 
-    # send a message to all connected clients
+    # send a message to the connected client
     @asyncio.coroutine
     def send_async(self, str):
         yield from self.websocket.send(str)
 
-    def send(self, allow_queueing, str):
-        # If there is no client then just queue the messages. These will
-        # then be sent once a client has connected
+    def send(self, str):
+        # If there is no client then just drop the messages.
         if self.websocket and self.websocket.open:
             self.loop.call_soon_threadsafe(asyncio.async, self.send_async(str))
-        elif allow_queueing:
-            self.queue.put(str)
 
     def connected(self):
         return self.websocket != None
 
 # this object will be receiving everything from stdout
 class io_sink(object):
-    def __init__(self, name, allow_queueing, thread, ui_queue):
+    def __init__(self, name, thread, ui_queue):
         self.name = name
-        self.allow_queueing = allow_queueing
         self.ui_queue = ui_queue
         self.thread = thread
 
     def write(self, message):
-        # slow down everything that allows queuing
-        # to keep the system usable
-        if self.allow_queueing:
-            time.sleep(OUTPUT_DELAY)
+        # todo: slow down stdout and stderr only
+        time.sleep(OUTPUT_DELAY)
 
-        # the websocket queue is shared by different sinks and thus the name
-        # is added
         if(self.thread):
-            self.thread.send(self.allow_queueing, json.dumps( { self.name: message } ))
+            self.thread.send(json.dumps( { self.name: message } ))
         if(self.ui_queue):
             self.ui_queue.put(message)
 
@@ -137,6 +124,8 @@ class UserInterrupt(Exception):
 
 # another sperate thread executes the code itself
 class RunThread(QThread):
+    done = pyqtSignal()
+    
     def __init__(self, ws_thread, ui_queue):
         super(RunThread,self).__init__()
 
@@ -168,9 +157,9 @@ class RunThread(QThread):
 
         # redirect stdout, stderr and highlight info to websocket server.
         # redirect stdout also to the local screen
-        sys.stdout = io_sink("stdout", False, self.ws_thread, self.ui_queue)
-        sys.stderr = io_sink("stderr", False, self.ws_thread, None)
-        self.highlight  = io_sink("highlight", True, self.ws_thread, None)
+        sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
+        sys.stderr = io_sink("stderr", self.ws_thread, None)
+        self.highlight  = io_sink("highlight", self.ws_thread, None)
 
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
@@ -180,28 +169,8 @@ class RunThread(QThread):
         self.online = False
         path = os.path.dirname(os.path.realpath(__file__))
         fname = os.path.join(path, "brickly.py")
-        stamp_fname = os.path.join(path, "brickly.stamp")
         if not os.path.isfile(fname):
             fname = os.path.join(path, "default.py")
-        else:
-            # A brickly.py was found. Now check if there's a stamp
-            # that's older than brickly.py. If it is then the
-            # brickly.py has never been run before which in turn
-            # means that brickly_app has been launched from the
-            # web interface
-
-            # if no stamp exists at all then we are also running
-            # online
-            if not os.path.isfile(stamp_fname):
-                self.online = True
-            else:
-                brickly_time = os.stat(fname).st_mtime
-                stamp_time = os.stat(stamp_fname).st_mtime
-                if brickly_time > stamp_time:
-                    self.online = True
-
-        stamp = open(stamp_fname, 'w')
-        stamp.close()
 
         # load and execute locally stored blockly code
         with open(fname, encoding="UTF-8") as f:
@@ -226,13 +195,6 @@ class RunThread(QThread):
                 code_txt = code_txt.replace("inputConvR2T(", "wrapper.inputConvR2T(");
                 code_txt = code_txt.replace("playSound(", "wrapper.playSound(");
 
-                # if running in online mode wait for the client to
-                # connect
-                if self.online:
-                    # wait for client before executing code
-                    while not self.ws_thread.connected():
-                        time.sleep(0.01)
-
                 # code = compile(code_txt, "brickly.py", 'exec')
                 # exec(code, globals())
 
@@ -245,8 +207,20 @@ class RunThread(QThread):
             except:
                 print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
 
+            self.done.emit()
             self.highlight.write("none")
 
+            # shut down all outputs
+            if self.txt:
+                for i in range(4):
+                    # switch motors off
+                    if self.M[i] == self.txt.C_MOTOR:
+                        self.motor[i].stop()
+                    # turn outputs off
+                    if self.M[i] == self.txt.C_OUTPUT:
+                        self.txt.setPwm(2*i,  0)
+                        self.txt.setPwm(2*i+1,0)
+                
     def stop(self):
         self.stop_requested = True
             
@@ -268,7 +242,7 @@ class RunThread(QThread):
             if math.isnan(arg):
                 return "???"   # this doesn't need translation ...
             else:
-                return FLOAT_FORMAT.format(arg)
+                return FLOAT_FORMAT.format(arg).rstrip('0').rstrip('.')
             
         return str(arg)
 
@@ -397,6 +371,9 @@ class RunThread(QThread):
             # if no TXT could be connected just write to stderr
             print("SND " + str(snd), file=sys.stderr)
         else:
+            if snd < 1:  snd = 1
+            if snd > 29: snd = 29
+            
             self.txt.setSoundIndex(snd)
             self.txt.incrSoundCmdId()
         
@@ -421,6 +398,11 @@ class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
 
+        translator = QTranslator()
+        path = os.path.dirname(os.path.realpath(__file__))
+        translator.load(QLocale.system(), os.path.join(path, "brickly_"))
+        self.installTranslator(translator)
+
         # start the websocket server listening for web clients to connect
         self.ws = WebsocketServerThread()
         self.ws.start()
@@ -430,6 +412,10 @@ class Application(TouchApplication):
 
         # create the empty main window
         w = TouchWindow("Brickly")
+
+        menu = w.addMenu()
+        self.menu_run = menu.addAction(QCoreApplication.translate("Menu","Run..."))
+        self.menu_run.triggered.connect(self.on_menu_run)
 
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
@@ -444,7 +430,15 @@ class Application(TouchApplication):
         
         # start the run thread executing the blockly code
         self.thread = RunThread(self.ws, self.ui_queue)
-        self.thread.start()
+        self.thread.done.connect(self.on_program_ended)
+
+        # check for launch flag and run ...
+        path = os.path.dirname(os.path.realpath(__file__))
+        launch_fname = os.path.join(path, "brickly.launch")
+        if os.path.isfile(launch_fname):
+            os.remove(launch_fname)
+        else:
+            self.program_run()
   
         w.show()
         self.exec_()        
@@ -466,14 +460,8 @@ class Application(TouchApplication):
         
     def on_command(self, str):
         # handle commands received from browser
-        if str == "run":
-            # clear screen
-            self.txt.clear()
-            # and start thread (again)
-            self.thread.start()
-
-        if str == "stop":
-            self.thread.stop()
+        if str == "run":  self.program_run()
+        if str == "stop": self.thread.stop()
         
     def on_timer(self):
         while not self.ui_queue.empty():
@@ -482,6 +470,32 @@ class Application(TouchApplication):
     def append(self, str):
         self.txt.moveCursor(QTextCursor.End)
         self.txt.insertPlainText(str)
+
+    def on_program_ended(self):
+        self.menu_run.setText(QCoreApplication.translate("Menu","Run..."))
+        
+    def program_run(self):
+        # change "Run..." to "Stop!"
+        self.menu_run.setText(QCoreApplication.translate("Menu","Stop!"))
+        
+        # clear screen
+        self.ws.send(json.dumps( { "gui_cmd": "clear" } ))
+        self.txt.clear()
+
+        # and tell web gui that the program now runs
+        self.ws.send(json.dumps( { "gui_cmd": "run" } ))
+        
+        # and start thread (again)
+        self.thread.start()
+
+    def program_stop(self):
+        self.thread.stop()
+
+    def on_menu_run(self):
+        if not self.thread.isFinished():
+            self.program_stop()
+        else:
+            self.program_run()
 
 if __name__ == "__main__":
     Application(sys.argv)

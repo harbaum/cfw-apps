@@ -234,18 +234,18 @@ var block_input_converter_r2t = {
 }
 
 var block_play_snd = {
-  "type": "play_snd",
-  "message0": MSG['blockPlaySndMessage'],
-  "args0": [
-    {
-      "type": "input_value",
-      "name": "sound_index"
-    }
-  ],
-  "previousStatement": null,
-  "nextStatement": null,
-  "colour": CustomBlocksHUE,
-  "tooltip": MSG['blockPlaySndToolTip']
+    "type": "play_snd",
+    "message0": MSG['blockPlaySndMessage'],
+    "args0": [
+	{
+	    "type": "input_value",
+	    "name": "sound_index"
+	}
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": CustomBlocksHUE,
+    "tooltip": MSG['blockPlaySndToolTip']
 }
     
 var block_sound = {

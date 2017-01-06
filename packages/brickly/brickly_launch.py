@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 
+# ftrobopy
+# https://github.com/ftrobopy/ftrobopy/blob/master/manual.pdf
+
 import cgi
 import sys
 import os
@@ -60,51 +63,22 @@ if not connected:
         while launcher_cmd("get-app", True) != "":
             time.sleep(0.1)
 
-# save xml if present
-if "text" in form:
-    # write code to file
-    with open("brickly.xml", 'w', encoding="utf-8") as f:
-        f.write(form["text"].value)
-        f.close()
-
 # save language setting if present
-if "lang" in form:
-    with open("lang.js", 'w') as f:
+with open("settings.js", 'w') as f:
+    if "lang" in form:
         f.write("var lang = '" + form["lang"].value + "';\n")
-        f.close()
+    if "skill" in form:
+        f.write("var skill = " + form["skill"].value + ";\n")
+        
+    f.close()
 
-# save and run python code if present
-if "code" in form:
-    # write code to file
-    with open("brickly.py", 'w', encoding="utf-8") as f:
-        f.write(form["code"].value)
-        f.close()
+# toucb the "just launched" file
+stamp = open("brickly.launch", 'w')
+stamp.close()
+    
+# write a valid http reply header
+print("Content-Type: application/json")
+print("")
 
-    # write a valid http reply header
-    print("Content-Type: application/json")
-    print("")
-
-    # There are two modes of operation: 
-    # 1) with a launcher process which can be told to
-    #    run a certain program
-    # 2) without any helper process. Thus this script forks the
-    #    process into the background itself
-
-    if current_executable == None:
-        if not debug:
-            # execute python program in external process
-            wrapper = os.path.join(os.path.dirname(os.path.realpath(__file__)), "brickly_wrapper.py")
-            proc = subprocess.Popen([wrapper], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            print(json.dumps( { "pid": proc.pid } ))
-        else:
-            print(json.dumps( { "pid": 123 } ))
-    else:
-        if not connected:
-            path = os.path.join("user", os.path.basename(os.path.dirname(os.path.realpath(__file__))))
-            launcher_cmd("launch " + os.path.join(path, "brickly_app.py"))
-            
-        print(json.dumps( { "pid": 0 } ))
-else:
-    print("Content-Type: application/json")
-    print("")
+path = os.path.join("user", os.path.basename(os.path.dirname(os.path.realpath(__file__))))
+launcher_cmd("launch " + os.path.join(path, "brickly_app.py"))

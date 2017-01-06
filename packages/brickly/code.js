@@ -1,9 +1,12 @@
+// Brickly specifc javascript code
+
 var Code = {};
 Code.workspace = null;
 Code.Msg = {};
 Code.speed = 90;        // 90% default speed
-Code.Level = 2;         // GUI level: 1 = beginner, 10 = expert
+Code.skill = 1;         // GUI level: 1 = beginner ... expert
 Code.connected = false;
+Code.spinner = null;
 
 function init() {
     // do various global initialization
@@ -21,7 +24,7 @@ function init() {
     Blockly.HSV_VALUE = 0.6;        // global brightness
 
     // enable/disable the speed control
-    if(Code.Level > 1) {
+    if(Code.skill > 1) {
 	document.getElementById("speed_range").value = Code.speed;
     } else {
 	document.getElementById("speed").style.display = "none";
@@ -32,9 +35,9 @@ function init() {
     toolboxText = toolboxText.replace(/{(\w+)}/g,
 				      function(m, p1) {return MSG[p1]});
 
-    // enable/disable parts of toolbox with respect to current
-    // level
+    // enable/disable parts of toolbox with respect to current skill level
     // ToDo
+    set_skill_tooltips();
 
     var toolboxXml = Blockly.Xml.textToDom(toolboxText);
     Code.workspace = Blockly.inject('blocklyDiv',
@@ -48,6 +51,17 @@ function init() {
 
     window.addEventListener('resize', onresize, false);
     onresize();
+
+    // try to connect web socket right away
+    ws_start(true);
+}
+
+function set_skill_tooltips() {
+    for (i = 1; i <= 5; i++) { 
+	obj = document.getElementById("skill-"+i.toString());
+	obj.title = MSG['skillToolTip'].replace('%1',MSG['skill'+i.toString()]);
+	if(i==Code.skill) obj.setAttribute("data-selected", "true");
+    }
 }
 
 function speed_change(value) {
@@ -56,23 +70,27 @@ function speed_change(value) {
 	Code.ws.send(JSON.stringify( { speed: Code.speed } ));
 }
 
-function get_lang(current) {
-  var val = location.search.match(new RegExp('[?&]lang=([^&]+)'));
+function get_parm(name, current) {
+  var val = location.search.match(new RegExp('[?&]'+name+'=([^&]+)'));
   return val ? decodeURIComponent(val[1].replace(/\+/g, '%20')) : current;
-};
-
-function set_lang(newLang) {
-    var search = window.location.search;
-    if (search.length <= 1) {
-	search = '?lang=' + newLang;
-    } else if (search.match(/[?&]lang=[^&]*/)) {
-	search = search.replace(/([?&]lang=)[^&]*/, '$1' + newLang);
-    } else {
-	search = search.replace(/\?/, '?lang=' + newLang + '&');
-    }
+}
     
-    window.location = window.location.protocol + '//' +
-	window.location.host + window.location.pathname + search;
+function set_parm(name, newVal, curVal) {
+    // don't do anything if the value hasn't changed
+    if(newVal != curVal) {
+	var search = window.location.search;
+
+	if (search.length <= 1) {
+	    search = '?'+name+'=' + newVal;
+	} else if (search.match(new RegExp('[?&]'+name+'=[^&]*'))) {
+	    search = search.replace(new RegExp('([?&]'+name+'=)[^&]*'), '$1'+newVal);
+	} else {
+	    search = search.replace(/\?/, '?'+name+'='+newVal+'&');
+	}
+    
+	window.location = window.location.protocol + '//' +
+	    window.location.host + window.location.pathname + search;
+    }
 }
 
 function display_state(str) {
@@ -129,6 +147,15 @@ function ws_start(initial) {
 	if(evt.data.length) {
             // the message is json encoded
             obj = JSON.parse(evt.data);
+
+	    // handle the various json values
+	    if(obj.gui_cmd) {
+		if(obj.gui_cmd == "clear") display_text_clr();
+		if(obj.gui_cmd == "run") {
+		    display_state(MSG['stateRunning']);
+		    button_set_state(true, false);
+		}
+	    }
 	    
             if(obj.stdout) display_text("<tt><b>"+html_escape(obj.stdout)+"</b></tt>");
             if(obj.stderr) display_text("<font color='red'><tt><b>"+
@@ -146,13 +173,22 @@ function ws_start(initial) {
     };
     
     Code.ws.onopen = function(evt) {
-	Code.spinner.stop();
-        Code.connected = true;
-        display_state(MSG['stateRunning']);
-        button_set_state(true, false);
+	if(Code.spinner) {
+	    Code.spinner.stop();
+	    Code.spinner = null;
+	}
 
+	// update GUI to reflect the connected state
+        Code.connected = true;
+        button_set_state(true, true);          // initially display an enabled run button
+	display_state(MSG['stateConnected']);
+	
 	// send initial speed
 	Code.ws.send(JSON.stringify( { speed: Code.speed } ));
+
+	// Not the initial probe but a connection initialted by the user? Then run the code ...
+	if(!initial)
+	    send_and_run_code();
     };
     
     Code.ws.onerror = function(evt) {
@@ -162,8 +198,7 @@ function ws_start(initial) {
         // retry if we never were successfully connected
         if(!Code.connected) {
             //try to reconnect in 10ms
-	    console.log("retry");
-            setTimeout(function(){ws_start(false)}, 10);
+	    if(!initial) setTimeout(function(){ ws_start(false) }, 10);
         } else {
             display_state(MSG['stateDisconnected']);
             Code.connected = false;
@@ -176,32 +211,7 @@ function ws_start(initial) {
 
 function stopCode() {
     button_set_state(false, false);
-
-    // we can either terminate the whole brickly app (which will automatically
-    // be restarted on next run. Or we just request the current thread to be
-    // stopped
-    if(false) {
-	var objDiv = document.getElementById("textArea");
-	Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
-
-	var http = new XMLHttpRequest();
-	http.open("GET", "./brickly_stop.py?pid="+pid);
-	http.setRequestHeader("Content-type", "text/html");
-	http.onreadystatechange = function() {
-            if (http.readyState == XMLHttpRequest.DONE) {
-		Code.spinner.stop();
-	    
-		if (http.status != 200) {
-		    alert("Error " + http.status + "\n" + http.statusText);
-		} else {
-		    
-		}
-            }
-	}
-	http.send();
-    } else {
-	Code.ws.send(JSON.stringify( { command: "stop" } ));
-    }
+    Code.ws.send(JSON.stringify( { command: "stop" } ));
 }
 
 function loadCode(name) {
@@ -236,6 +246,39 @@ function loadCode(name) {
     http.send();
 }
 
+function send_and_run_code() {
+    // Generate Python code and POST it
+    var python_code = Blockly.Python.workspaceToCode(Code.workspace);
+
+    // there may be no code at all, this is still valid. Mabe we can do something more
+    // useful in this case
+    if(python_code == "") {
+	// simply do nothing by now. In the future perhaps ask to reload
+	// the default code
+	return;
+    }
+
+    // preprend current speed settings
+    python_code = "# speed = " + Code.speed.toString() + "\n" + python_code;
+
+    // generate xml and post it with the python code
+    var blockly_dom = Blockly.Xml.workspaceToDom(Code.workspace);
+
+    // insert settings (speed) into xml
+    var settings = goog.dom.createDom('settings');
+    settings.setAttribute('speed', Code.speed);
+    blockly_dom.appendChild(settings)
+	
+    var blockly_code = Blockly.Xml.domToText(blockly_dom);
+
+    Code.ws.send(JSON.stringify( { python_code: python_code } ));
+    Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
+    Code.ws.send(JSON.stringify( { speed: Code.speed } ));
+    Code.ws.send(JSON.stringify( { command: "run" } ));
+	
+    button_set_state(true, false);
+}
+    
 function runCode() {
     // add highlight information to the code. Make it commented so the code
     // will run on any python setup. If highlighting is wanted these lines
@@ -243,73 +286,33 @@ function runCode() {
     Blockly.Python.STATEMENT_PREFIX = '# highlightBlock(%1)\n';
     Blockly.Python.addReservedWords('wrapper');
 
-    // Generate Python code and POST it
-    var code = Blockly.Python.workspaceToCode(Code.workspace);
-
-    // there may be no code at all, this is still valid. Mabe we can do something more
-    // useful in this case
-    if(code == "") {
-	// simply do nothing by now. In the future perhaps ask to reload
-	// the default code
+    if(Code.connected) {
+	send_and_run_code();
     } else {
-	// preprend current speed settings
-	code = "# speed = " + Code.speed.toString() + "\n" + code;
-
-	// prepare gui for running program
-	display_text_clr();
-
-	// generate xml and post it with the python code
-	var xml = Blockly.Xml.workspaceToDom(Code.workspace);
-
-	// insert settings (speed) into xml
-	var settings = goog.dom.createDom('settings');
-	settings.setAttribute('speed', Code.speed);
-	xml.appendChild(settings)
+	// if we aren't connected then we need to start the brickly app on the TXT
+	// first. This is done by posting the code
 	
-	var text = Blockly.Xml.domToText(xml);
-
-	if(Code.connected) {
-	    Code.ws.send(JSON.stringify( { python_code: code } ));
-	    Code.ws.send(JSON.stringify( { blockly_code: text } ));
-	    Code.ws.send(JSON.stringify( { speed: Code.speed } ));
-	    Code.ws.send(JSON.stringify( { command: "run" } ));
-
-	    display_state(MSG['stateRunning']);
-	    button_set_state(true, false);
-	} else {
-	    // if we aren't connected then we need to start the brickly app on the TXT
-	    // first. This is done by posting the code
+	button_set_state(false, true);
+        display_state(MSG['stateConnecting']);
 	
-	    button_set_state(false, true);
-            display_state(MSG['stateConnecting']);
-	    
-	    var objDiv = document.getElementById("textArea");
-	    Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
-
-	    var http = new XMLHttpRequest();
-	    http.open("POST", "./brickly_run.py");
-	    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	    http.onreadystatechange = function() {
-		if (http.readyState == XMLHttpRequest.DONE) {
-		    if (http.status != 200) {
-			alert("Error " + http.status + "\n" + http.statusText);
-		    } else {
-			// try to find PID ...
-			pid = JSON.parse(http.responseText).pid;
-			
-			setTimeout(function(){ws_start(true)}, 500);
-		    }
-		}
+	var objDiv = document.getElementById("textArea");
+	Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
+	
+	var http = new XMLHttpRequest();
+	http.open("POST", "./brickly_launch.py");
+	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	http.onreadystatechange = function() {
+	    if (http.readyState == XMLHttpRequest.DONE) {
+		if (http.status != 200) 
+		    alert("Error " + http.status + "\n" + http.statusText);
+		else
+		    ws_start(false);
 	    }
-	    
-	    // POST python as well as xml
-	    // transfer current language so it can also be saved
-	    // and send connection status
-	    http.send('code='+encodeURIComponent(code)+
-		      '&text='+encodeURIComponent(text)+
-		      '&connected='+Code.connected+
-		      '&lang='+lang);
 	}
+
+	// post current global settings
+	// todo: make this via websocket
+	http.send('skill='+Code.skill+'&lang='+Code.lang);
     }
 }
 
@@ -359,12 +362,18 @@ var onresize = debounce(function() {
     Blockly.svgResize(Code.workspace);
 }, 100);
 
+// "lang" is set in settings.js
 // language may not be set by now. Use english as default then
 if (typeof lang === 'undefined') { lang = 'en'; }
 // try to override from url
-lang = get_lang(lang);
+Code.lang = get_parm("lang", lang);
 
-document.head.parentElement.setAttribute('lang', lang);
-document.write('<script src="blockly/' + lang + '.js"></script>\n');
-document.write('<script src="' + lang + '.js"></script>\n');
+if (typeof skill === 'undefined') { skill = 1; }
+// try to override from url
+Code.skill = get_parm("skill", skill);
+
+document.head.parentElement.setAttribute('lang', Code.lang);
+document.head.parentElement.setAttribute('skill', Code.skill);
+document.write('<script src="blockly/' + Code.lang + '.js"></script>\n');
+document.write('<script src="' + Code.lang + '.js"></script>\n');
 window.addEventListener('load', init);

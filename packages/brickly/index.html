@@ -8,7 +8,7 @@
   <script src="./blockly/blockly_compressed.js"></script>
   <script src="./blockly/blocks_compressed.js"></script>
   <script src="./blockly/python_compressed.js"></script>
-  <script src="./lang.js"></script>
+  <script src="./settings.js"></script>
   <script src="./code.js"></script>
   <script src="./custom_blocks.js"></script>
   <script src="./spin.js"></script>
@@ -16,10 +16,20 @@
 
 <body>
   <div id="lang">
-    <img src="de.gif" onclick="set_lang('de')"/>&nbsp;
-    <img src="en.gif" onclick="set_lang('en')"/>
+    <img src="de.gif" onclick="set_parm('lang','de',Code.lang)"/>&nbsp;
+    <img src="en.gif" onclick="set_parm('lang','en',Code.lang)"/>
   </div>
 
+  <div id="skill">
+    <table><tr>
+	<td><button id="skill-1" class="round_button" onclick="set_parm('skill',1,Code.skill)">1</button></td>
+	<td><button id="skill-2" class="round_button" onclick="set_parm('skill',2,Code.skill)">2</button></td>
+	<td><button id="skill-3" class="round_button" onclick="set_parm('skill',3,Code.skill)">3</button></td>
+	<td><button id="skill-4" class="round_button" onclick="set_parm('skill',4,Code.skill)">4</button></td>
+	<td><button id="skill-5" class="round_button" onclick="set_parm('skill',5,Code.skill)">5</button></td>
+    </tr></table>
+  </div>
+  
   <table id="global" width="100%" border="0" height="98%">
     <tr><td colspan="2">
 	<h1><div class="outline"><font color="red">fischer</font><font color="#046ab4">technik</font>&nbsp;<font color="#fcce04">TXT</font></div></h1>
