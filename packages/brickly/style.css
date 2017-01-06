@@ -1,6 +1,6 @@
 h1 {
-  margin-top:10px;
-  margin-bottom:10px;
+  margin-top:0px;
+  margin-bottom:5px;
 }
 
 html, body {
@@ -34,7 +34,7 @@ body {
 }
 
 #blocklyArea {
-    height: 99%;
+    height: 100%; /* 99 */
 }
 
 .blocklyTreeLabel {
@@ -53,7 +53,7 @@ body {
     background-color: black;
     color: black;
 }
-
+  
 button {
     background-color: #448acc;
     color: white;
@@ -65,8 +65,28 @@ button {
     box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
 
+button, button:active, button:focus {
+    outline: none !important;
+    outline: 0 !important;
+}
+
 button[disabled=disabled], button:disabled {
     color: lightgrey;
+}
+
+.round_button {
+    height: 32px;
+    width: 32px;
+    border-radius: 16px;
+}
+
+.round_button[data-selected="true"] {
+    height: 32px;
+    width: 32px;
+    border-radius: 16px;
+    background-color: white;
+    color:  #448acc;
+    border-color: white;
 }
 
 #textDiv {
@@ -75,13 +95,21 @@ button[disabled=disabled], button:disabled {
 }
 
 #blocklyDiv {
-    height: 99%;
+    height: 100%;  /* 99 */
 }
 
+/* the language icons are placed top right */
 #lang {
     position: absolute;
     top: 10px;
     right: 10px;
+}
+
+/* the skill buttons are placed top left */
+#skill {
+    position: absolute;
+    top: 10px;
+    left: 10px;
 }
 
 #lang img {
@@ -117,7 +145,7 @@ input[type=range]::-webkit-slider-thumb {
   height: 30px;
   width: 15px;
   border-radius: 5px;
-  background: #FFFFFF;
+  background: #448acc;
   cursor: pointer;
   -webkit-appearance: none;
   margin-top: -11px;
@@ -188,4 +216,13 @@ input[type=range]:focus::-ms-fill-lower {
 
 input[type=range]:focus::-ms-fill-upper {
   background: #448acc;
+}
+
+/* get rid of the dotted box ... */
+:focus {
+    outline: none 0;
+}
+
+::-moz-focus-inner {
+  border: 0;
 }
