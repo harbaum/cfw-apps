@@ -1,0 +1,65 @@
+<xml xmlns="http://www.w3.org/1999/xhtml">
+  <!-- Brickly skill level 2 toolbox -->
+  <category name="{catCustom}" colour="180">
+    <block type="wait">
+      <value name="seconds">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="play_snd"></block>
+    <block type="sound"></block>
+  </category>
+  <category name="{catInputs}" colour="200">
+    <block type="simple_input"></block>
+  </category>
+  <category name="{catOutputs}" colour="220">
+    <block type="output"></block>
+    <block type="on_off"></block>
+  </category>
+  <category name="{catLogic}" colour="43">
+    <block type="controls_if"></block>
+    <block type="logic_compare"></block>
+    <block type="logic_operation"></block>
+    <block type="logic_negate"></block>
+    <block type="logic_boolean"></block>
+  </category>
+  <category name="{catLoops}" colour="120">
+    <block type="repeat"></block>
+    <block type="controls_repeat_ext">
+      <value name="TIMES">
+        <shadow type="math_number">
+          <field name="NUM">10</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="controls_whileUntil"></block>
+  </category>
+  <category name="{catMath}" colour="240">
+    <block type="math_number"></block>
+    <block type="math_arithmetic">
+      <value name="A">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+      <value name="B">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+    </block>
+  </category>
+  <category name="{catText}" colour="350">
+    <block type="text"></block>
+    <block type="text_join"></block>
+    <block type="text_print">
+      <value name="TEXT">
+        <shadow type="text">
+            <field name="TEXT"></field>
+        </shadow>
+      </value>
+    </block>
+  </category>
+</xml>

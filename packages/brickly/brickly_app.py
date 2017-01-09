@@ -17,20 +17,16 @@ import ftrobopy_custom
 # the websocket server is a seperate tread for handling the websocket
 class WebsocketServerThread(QThread):
     command = pyqtSignal(str)
+    setting = pyqtSignal(dict)
     python_code = pyqtSignal(str)
     blockly_code = pyqtSignal(str)
+    client_connected = pyqtSignal()
+    speed_changed = pyqtSignal(int)
     
     def __init__(self): 
         super(WebsocketServerThread,self).__init__()
         self.websocket = None
 
-        # initial speed must not be > 90 to prevent rate limit from dropping
-        # highlights before the browser has sent the actual speed value
-        self.speed = 90  # range 0 .. 100
-
-    def speed(self):
-        return self.speed
-        
     def run(self): 
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -52,8 +48,10 @@ class WebsocketServerThread(QThread):
         # reject any further client besides the first (main) one
         if self.websocket:
             return
-        
+
         self.websocket = websocket
+
+        self.client_connected.emit()
 
         # run while client is connected
         while(websocket.open):
@@ -62,15 +60,17 @@ class WebsocketServerThread(QThread):
                 msg = json.loads(msg_str)
 
                 if 'speed' in msg:
-                    self.speed = int(msg['speed'])
-                elif 'command' in msg:
+                    self.speed_changed.emit(int(msg['speed']))
+                if 'lang' in msg:
+                    self.setting.emit( { 'lang': msg['lang'] } )
+                if 'skill' in msg:
+                    self.setting.emit( { 'skill': msg['skill'] })
+                if 'command' in msg:
                     self.command.emit(msg['command'])
-                elif 'python_code' in msg:
+                if 'python_code' in msg:
                     self.python_code.emit(msg['python_code'])
-                elif 'blockly_code' in msg:
+                if 'blockly_code' in msg:
                     self.blockly_code.emit(msg['blockly_code'])
-                else:
-                    print("Unknown cmd", msg, file=sys.stderr)
                     
             except websockets.exceptions.ConnectionClosed:
                 pass
@@ -128,6 +128,8 @@ class RunThread(QThread):
     
     def __init__(self, ws_thread, ui_queue):
         super(RunThread,self).__init__()
+
+        self.speed = 90  # range 0 .. 100
 
         self.ws_thread = ws_thread  # websocket server thread
         self.ui_queue = ui_queue    # output queue to the local gui
@@ -223,6 +225,9 @@ class RunThread(QThread):
                 
     def stop(self):
         self.stop_requested = True
+
+    def set_speed(self, val):
+        self.speed = val
             
     def wait(self, duration):
         # make sure we never pause more than 100ms to be able
@@ -239,6 +244,8 @@ class RunThread(QThread):
     def str(self, arg):
         # use custom conversion for float numbers
         if type(arg) is float:
+            if math.isinf(arg):
+                return "∞" 
             if math.isnan(arg):
                 return "???"   # this doesn't need translation ...
             else:
@@ -391,12 +398,15 @@ class RunThread(QThread):
         if now > self.last + (1000/MAX_HIGHLIGHTS_PER_SEC):
             self.last = now
 
-            time.sleep((100-self.ws_thread.speed)/100)
+            time.sleep((100-self.speed)/100)
             self.highlight.write(str)
             
 class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
+
+        # settings that may be sent from browser
+        self.settings = { }
 
         translator = QTranslator()
         path = os.path.dirname(os.path.realpath(__file__))
@@ -407,6 +417,8 @@ class Application(TouchApplication):
         self.ws = WebsocketServerThread()
         self.ws.start()
         self.ws.command.connect(self.on_command)
+        self.ws.setting.connect(self.on_setting)
+        self.ws.client_connected.connect(self.on_client_connect)
         self.ws.python_code.connect(self.on_python_code)        # received python code
         self.ws.blockly_code.connect(self.on_blockly_code)      # received blockly code
 
@@ -431,6 +443,7 @@ class Application(TouchApplication):
         # start the run thread executing the blockly code
         self.thread = RunThread(self.ws, self.ui_queue)
         self.thread.done.connect(self.on_program_ended)
+        self.ws.speed_changed.connect(self.thread.set_speed)
 
         # check for launch flag and run ...
         path = os.path.dirname(os.path.realpath(__file__))
@@ -451,18 +464,40 @@ class Application(TouchApplication):
         with open(fname, 'w', encoding="UTF-8") as f:
             f.write(data)
             f.close()
-        
+
+    def on_client_connect(self):
+        # tell browser whether code is being executed
+        self.ws.send(json.dumps( { "running": not self.thread.isFinished() } ))
+
     def on_python_code(self, str):
         self.write_to_file("brickly.py", str)
         
     def on_blockly_code(self, str):
         self.write_to_file("brickly.xml", str)
-        
+     
+    def on_setting(self, setting):
+        for i in setting.keys():
+            self.settings[i] = setting[i]
+
     def on_command(self, str):
         # handle commands received from browser
         if str == "run":  self.program_run()
         if str == "stop": self.thread.stop()
-        
+        if str == "save_settings": self.save_settings()
+
+    def save_settings(self):
+        # save current settings
+        settings = ""
+        for i in self.settings:
+            settings += "var " + i + " = "
+            if type(self.settings[i]) is str:
+                settings += "'"+ self.settings[i]+"'"
+            else:
+                settings += str(self.settings[i])
+            settings += ";\n"
+
+        self.write_to_file("settings.js", settings)
+
     def on_timer(self):
         while not self.ui_queue.empty():
             self.append(self.ui_queue.get())

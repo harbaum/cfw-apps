@@ -20,6 +20,8 @@ var MSG = {
     // blocks
     blockWaitMessage: "warte %1 Sekunden",
     blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten",
+    blockRepeatMessage: "wiederhole %1 %2",
+    blockRepeatToolTip: "Wiederhole etwas endlos",
     blockPwmValueMessage: "%1",
     blockPwmValueToolTip: "Variabler Ausgangszustand",
     blockOnOffMessage: "%1",
@@ -99,14 +101,19 @@ var MSG = {
     blockSoundRobby_3: "Robbie 3",
     blockSoundRobby_4: "Robbie 4",
 
+    textVariable: "Text",
+    listVariable: "Liste",
+
     // categories
     catCustom: "Spezial",
     catInputs: "Eingänge",
     catOutputs: "Ausgänge",
+    catMotors: "Motoren",
     catLogic: "Logik",
     catLoops: "Schleifen",
     catMath: "Mathe",
     catText: "Text",
+    catLists: "Listen",
     catVariables: "Variablen",
     catFunctions: "Funktionen"
 }

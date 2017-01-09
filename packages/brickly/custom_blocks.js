@@ -17,6 +17,20 @@ var block_wait = {
   "tooltip": MSG['blockWaitToolTip']
 };
 
+var block_repeat = {
+  "type": "repeat",
+  "message0": MSG['blockRepeatMessage'],
+  "args0": [ {
+      "type": "input_dummy"
+    },{
+      "type": "input_statement",
+      "name": "STATEMENTS"
+    } ],
+  "previousStatement": null,
+  "colour": Blockly.Blocks.loops.HUE,
+  "tooltip": MSG['blockRepeatToolTip']
+};
+
 var block_pwm_value = {
   "type": "pwm_value",
   "message0": MSG['blockPwmValueMessage'],
@@ -294,10 +308,17 @@ var block_sound = {
 // generate python code for custom blocks
 Blockly.Python['wait'] = function(block) {
     var value_seconds = Blockly.Python.valueToCode(block, 'seconds', Blockly.Python.ORDER_ATOMIC);
-   if(!value_seconds) value_seconds = 0;
+    if(!value_seconds) value_seconds = 0;
     return 'wait(%1)\n'.replace('%1', value_seconds);
 };
 
+Blockly.Python['repeat'] = function(block) {
+    var statements = Blockly.Python.statementToCode(block, 'STATEMENTS');
+    // TODO: Assemble Python into code variable.
+    var code = 'while True:\n' + statements;
+    return code;
+}
+    
 Blockly.Python['pwm_value'] = function(block) {
     var state = block.getFieldValue('state');
     return [state, Blockly.Python.ORDER_NONE];
@@ -373,6 +394,8 @@ function custom_blocks_init() {
     // make custom blocks known to blockly
     Blockly.Blocks['wait'] = {
 	init: function() { this.jsonInit(block_wait); } };
+    Blockly.Blocks['repeat'] = {
+	init: function() { this.jsonInit(block_repeat); } };
     Blockly.Blocks['output'] = {
 	init: function() { this.jsonInit(block_output); } };
     Blockly.Blocks['motor'] = {

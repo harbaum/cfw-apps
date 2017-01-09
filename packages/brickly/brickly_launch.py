@@ -2,20 +2,10 @@
 # -*- coding: utf-8 -*-
 #
 
-# ftrobopy
-# https://github.com/ftrobopy/ftrobopy/blob/master/manual.pdf
-
-import cgi
 import sys
 import os
-import subprocess
-import json
 import socket
 import time
-
-debug = False
-
-form = cgi.FieldStorage()
 
 # send a command to the launcher and if a reply is expected return
 # the reply or None if the connection failed
@@ -48,37 +38,22 @@ def launcher_cmd(str, expect_reply=False):
 # system/about/about.py is returned
 current_executable = launcher_cmd("get-app", True)
 
-# check if we received a connection state. This means the browser
-# is connected to the app and we must not restart it
-connected = False
-if "connected" in form:
-    connected = form["connected"].value.lower() == "true"
+# some app is running -> stop it
+if current_executable != None and current_executable != "":
+    launcher_cmd("stop-app")
 
-if not connected:
-    # some app is running -> stop it
-    if current_executable != None and current_executable != "":
-        launcher_cmd("stop-app")
-
-        # wait for app to be stopped ...
-        while launcher_cmd("get-app", True) != "":
-            time.sleep(0.1)
-
-# save language setting if present
-with open("settings.js", 'w') as f:
-    if "lang" in form:
-        f.write("var lang = '" + form["lang"].value + "';\n")
-    if "skill" in form:
-        f.write("var skill = " + form["skill"].value + ";\n")
-        
-    f.close()
+    # wait for app to be stopped ...
+    while launcher_cmd("get-app", True) != "":
+        time.sleep(0.1)
 
 # toucb the "just launched" file
 stamp = open("brickly.launch", 'w')
 stamp.close()
     
 # write a valid http reply header
-print("Content-Type: application/json")
+print("Content-Type: text/html")
 print("")
 
+# send launch request for brickly app to launcher
 path = os.path.join("user", os.path.basename(os.path.dirname(os.path.realpath(__file__))))
 launcher_cmd("launch " + os.path.join(path, "brickly_app.py"))

@@ -16,7 +16,12 @@ body {
 }
 
 .blocklySvg {
-  background-color: #DBE2FF !important;
+    background-color: #DBE2FF !important; 
+}
+
+.blocklyFlyoutBackground {
+    fill: #BCC9FF;
+    fill-opacity: .8;
 }
 
 .blocklyToolboxDiv {
@@ -50,10 +55,13 @@ body {
 }
     
 .blocklyTreeRow:hover {
-    background-color: black;
-    color: black;
+    color: lightgrey;
 }
-  
+
+.blocklyTreeRow:not(.blocklyTreeSelected):hover {
+    background-color: #004475;
+}
+ 
 button {
     background-color: #448acc;
     color: white;
