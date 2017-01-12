@@ -1,12 +1,159 @@
 // Brickly specifc javascript code
 
 var Code = {};
+var DEFAULT = [ "brickly.xml", "brickly" ];
 Code.workspace = null;
 Code.Msg = {};
-Code.speed = 90;        // 90% default speed
-Code.skill = 1;         // GUI level: 1 = beginner ... expert
+Code.speed = 90;                    // 90% default speed
+Code.skill = 1;                     // GUI level: 1 = beginner ... expert
+Code.program_name = DEFAULT;        // default name
 Code.connected = false;
 Code.spinner = null;
+Code.files = [ ]
+
+/* When the user clicks on the button, */
+/* toggle between hiding and showing the dropdown content */
+function menu_show() {
+    document.getElementById("dropdown_content").classList.toggle("show");
+}
+
+function menu_disable(disabled) {
+    if(disabled)
+	document.getElementById("dropdown_button").classList.add("not-active");
+    else
+	document.getElementById("dropdown_button").classList.remove("not-active");
+}
+
+// check if a program with that filename exists
+function file_exists(a) {
+    for(var i = 0; i < Code.files.length; i++) 
+	if(Code.files[i][0] == a) return true;
+
+    return false;
+}
+
+// check if a program with that name exists
+function name_exists(a) {
+    for(var i = 0; i < Code.files.length; i++) 
+	if(Code.files[i][1] == a) return true;
+
+    return false;
+}
+
+function menu_text_edit() {
+    // check for current text and disable new button if such a name
+    // already exists
+    var name = document.getElementById("dropdown_text").value;
+
+    document.getElementById("dropdown_new").disabled = 
+	(name_exists(name) || name == "");
+}
+
+function menu_new() {
+    // now find an unused file name in the list
+    var fname = null;
+    for(var i = 1; i < 64; i++) {
+	var tmp = "brickly-" + i + ".xml";
+	if(!file_exists(tmp)) {
+	    fname = tmp;
+	    break;
+	}
+    }
+
+    // this should never happen as we disable the new button
+    // after 63 files
+    if(!fname) {
+	alert("Too many files!");
+	return;
+    }
+
+    // fname is now a valid and unused filename
+ 
+    // create a new program
+    Code.workspace.clear();
+    Code.program_name = [ fname, document.getElementById("dropdown_text").value ];
+
+    // Append to list of files even though it has never been saved yet ...
+    Code.files.push(Code.program_name)
+    menu_init();
+}
+
+/* construct the main menu */
+function menu_init() {
+    document.getElementById("dropdown_new").innerHTML = MSG['dropdown_new'];
+    menu_disable(false);
+    menu_append_files(Code.files);
+    menu_text_edit();   // update new button if required
+}
+
+function load_file(fname, name) {
+    Code.program_name = [ fname, name ];
+    menu_init();
+    loadCode(fname);
+}
+
+function menu_entry(a) {
+    var cl = ""
+    var ar = ""
+
+    if(a[0] == Code.program_name[0]) 
+	// if this entry is for the current program then make it inactive and hightlight it
+	cl = 'class="dropdown_selected dropdown_not_active" '
+    else
+	// othewise make it trigger an event
+	ar = 'onclick="load_file(\'' + a[0] + '\',\'' + a[1] + '\')"'
+
+    // make sure name doesn't wrap
+    var name = a[1].replace(/ /g, '&nbsp;');
+    return '<td align="center"><a ' +  cl + ar + '>' + name + "</a></td>";
+}
+
+/* add files to the menu */
+function menu_append_files(f) {
+    content_files = document.getElementById("dropdown_content_files");
+
+    // determine number of columns for a square setup
+    cols = Math.floor(1+Math.sqrt(f.length-1));
+    // limit number of columns
+    // if(cols > 3) cols = 3;
+
+    // remove all existing files
+    rows = Math.floor(((f.length-1)/cols)+1)
+
+    var i;
+    var new_content_files = "";
+
+    // the files come as an array of arrays
+    for(i = 0; i < f.length; i++) {
+	// first column?
+	if((i % cols) == 0) new_content_files += "<tr>";
+	    
+	// console.log("type: %o", obj.program_files[i]);
+	new_content_files += menu_entry(f[i]);
+
+	if((i % cols) == (cols-1)) new_content_files += "</tr>";
+    }
+
+    // fill up last row
+    for( ; i < cols*rows; i++) {
+	if((i % cols) == 0) new_content_files += "<tr>";
+	new_content_files += "<td></td>";
+	if((i % cols) == (cols-1)) new_content_files += "</tr>";
+    }
+
+    content_files.innerHTML = new_content_files;
+}
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+	if(!event.target.classList.contains('dropdown-keep-open')) {
+	    var dropdowns = document.getElementsByClassName("dropdown_content");
+	    for (var i = 0; i < dropdowns.length; i++) {
+		if (dropdowns[i].classList.contains('show'))
+		    dropdowns[i].classList.remove('show');
+	    }
+	}
+}
 
 function init() {
     // do various global initialization
@@ -24,11 +171,13 @@ function init() {
     Blockly.HSV_VALUE = 0.6;        // global brightness
 
     // enable/disable the speed control
-    if(Code.skill > 1) {
-	document.getElementById("speed_range").value = Code.speed;
-    } else {
-	document.getElementById("speed").style.display = "none";
-    }
+    if(Code.skill > 1)	document.getElementById("speed_range").value = Code.speed;
+    else                document.getElementById("speed").style.display = "none";
+
+    // below skill level 3 hide the menu
+    if(Code.skill <= 2) document.getElementById("dropdown").style.display = "none";    
+    // initially disable the dropdown menu
+    menu_disable(true);
 
     custom_blocks_init();
 
@@ -63,13 +212,23 @@ function toolbox_install(toolboxText) {
 
     var toolbox = Blockly.Xml.textToDom(toolboxText);
     Code.workspace = Blockly.inject('blocklyDiv',
-	    { media: 'media/', toolbox: toolbox } );
+				    { media: 'media/',
+				      toolbox: toolbox,
+				      // scrollbars: false,  // 
+				      zoom: { // controls: true,
+					      wheel: true,
+					      // startScale: 1.0,
+					      // maxScale: 3,
+					      // minScale: 0.3,
+					      scaleSpeed: 2
+					    }
+				    } );
     
     button_set_state(true, true);
     display_state(MSG['stateDisconnected']);
 
     // fixme: this must not happen before screen resizing is done
-    setTimeout(function() { loadCode("./brickly.xml") }, 100);
+    setTimeout(function() { loadCode( Code.program_name[0] ) }, 100);
     
     window.addEventListener('resize', onresize, false);
     onresize();
@@ -79,8 +238,8 @@ function toolbox_install(toolboxText) {
 }
 
 function set_skill_tooltips() {
-    for (i = 1; i <= 5; i++) { 
-	obj = document.getElementById("skill-"+i.toString());
+    for (var i = 1; i <= 5; i++) { 
+	var obj = document.getElementById("skill-"+i.toString());
 	obj.title = MSG['skillToolTip'].replace('%1',MSG['skill'+i.toString()]);
 	if(i==Code.skill) obj.setAttribute("data-selected", "true");
     }
@@ -183,6 +342,12 @@ function ws_start(initial) {
 		}
 	    }
 
+	    if(typeof obj.program_files !== 'undefined') {
+		Code.files = [ DEFAULT ]
+		Code.files.push.apply(Code.files, obj.program_files);
+		menu_init();
+	    }
+
 	    if(typeof obj.running !== 'undefined') {
 		if(obj.running) {
 		    // client informs us after a connect that there's code being
@@ -213,6 +378,9 @@ function ws_start(initial) {
         button_set_state(true, true);          // initially display an enabled run button
 	display_state(MSG['stateConnected']);
 	
+	// request list of program files stored on TXT
+	Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
+
 	// Not the initial probe but a connection initialted by the user? Then run the code ...
 	if(!initial)
 	    send_and_run_code();
@@ -252,6 +420,11 @@ function loadCode(name) {
 		    loadCode("./default.xml");
 		}
             } else {
+		Code.workspace.clear();
+
+		var min_x = Number.POSITIVE_INFINITY;
+		var min_y = Number.POSITIVE_INFINITY;
+
 		var xml = Blockly.Xml.textToDom(http.responseText);
 
 		// try to find settings in dom
@@ -265,8 +438,29 @@ function loadCode(name) {
 			    document.getElementById("speed_range").value = Code.speed;
 			}
 		    }
+
+		    // change the origin of the root blocks
+		    // find the minimum x and y coordinates used
+		    if (name == 'block') {
+			if(min_x > parseInt(xmlChild.getAttribute('x')))  min_x = parseInt(xmlChild.getAttribute('x'));
+			if(min_y > parseInt(xmlChild.getAttribute('y')))  min_y = parseInt(xmlChild.getAttribute('y'));
+		    }
 		}
+
+		// make sure top/left corner is at (10,10)
+		for (var i = 0; i < xml.childNodes.length; i++) {
+		    var xmlChild = xml.childNodes[i];
+		    var name = xmlChild.nodeName.toLowerCase();
+		    if (name == 'block') {
+			xmlChild.setAttribute('x', parseInt(xmlChild.getAttribute('x')) - min_x + 10);
+			xmlChild.setAttribute('y', parseInt(xmlChild.getAttribute('y')) - min_y + 10);
+		    }
+		}
+
 		Blockly.Xml.domToWorkspace(xml, Code.workspace);
+
+		// center if scrolling is enabled
+		Code.workspace.scrollCenter();
             }
         }
     }
@@ -298,9 +492,13 @@ function send_and_run_code() {
     // insert settings (speed) into xml
     var settings = goog.dom.createDom('settings');
     settings.setAttribute('speed', Code.speed);
+    settings.setAttribute('name', Code.program_name[1]);
     blockly_dom.appendChild(settings)
 	
     var blockly_code = Blockly.Xml.domToText(blockly_dom);
+
+    // set current program name
+    Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
 
     // send python and blockly version fo the current code
     Code.ws.send(JSON.stringify( { python_code: python_code } ));
@@ -318,6 +516,9 @@ function send_and_run_code() {
     // enable button and make it a "stop!" button
     button_set_state(true, false);
     spinner_stop();
+
+    // request list of program files stored on TXT as it may have changed
+    Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
 }
     
 function runCode() {
@@ -408,6 +609,12 @@ Code.lang = get_parm("lang", lang);
 if (typeof skill === 'undefined') { skill = 1; }
 // try to override from url
 Code.skill = parseInt(get_parm("skill", skill));
+
+if((typeof program_name !== 'undefined')&&
+   (typeof program_file_name !== 'undefined')) {
+    console.log("FILE: %s %s", program_name, program_file_name)
+    Code.program_name = [ program_file_name, program_name ]
+}
 
 document.head.parentElement.setAttribute('lang', Code.lang);
 document.head.parentElement.setAttribute('skill', Code.skill);

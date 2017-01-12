@@ -9,6 +9,10 @@ var MSG = {
     stateRunning: "running...",
     stateProgramEnded: "ended",
 
+    // the menu
+    dropdown_new: "New",
+    dropdown_del: "Delete",
+
     // the skill system
     skillToolTip: "Select skill level '%1'",
     skill1: "beginner",

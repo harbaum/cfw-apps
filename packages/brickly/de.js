@@ -9,6 +9,10 @@ var MSG = {
     stateRunning: "läuft...",
     stateProgramEnded: "beendet",
 
+    // the menu
+    dropdown_new: "Neu",
+    dropdown_del: "Löschen",
+
     // the skill system
     skillToolTip: "Wähle Erfahrungsgrad '%1' aus",
     skill1: "Anfänger",

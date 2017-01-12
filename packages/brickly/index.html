@@ -29,7 +29,10 @@
 	<td><button id="skill-5" class="round_button" onclick="set_parm('skill',5,Code.skill)">5</button></td>
     </tr></table>
   </div>
-  
+
+  <div id="blocklyDiv" style="position: absolute;"></div>
+  <div id="textDiv" style="position: absolute; overflow-y: auto;"></div> 
+
   <table id="global" width="100%" border="0" height="98%">
     <tr><td colspan="2">
 	<h1><div class="outline"><font color="red">fischer</font><font color="#046ab4">technik</font>&nbsp;<font color="#fcce04">TXT</font></div></h1>
@@ -39,12 +42,29 @@
       <td width="75%" id="blocklyArea"></td>
 
       <td>
-	<table width="100%" height="100%">
+	<table width="100%" height="100%" cellpadding="0" cellspacing="0">
 	  <tr><td>
-	      <table width="100%"><tr>
-		  <td><button id="button"></button></td>
-		  <td align="right">
+	      <table width="100%" border="0" cellpadding="0"><tr>
+		  <td width="33%"><button id="button"></button></td>
+		  <td width="33%" align="center">
 		    <div id="stateDiv" style="color: #fcce04;"></div>
+		  </td>
+		  <td height="40" width="33%" align="right">
+		    <div id="dropdown" class="dropdown">
+		      <a id="dropdown_button" class="dropdown_button dropdown-keep-open" onclick="menu_show()"><img class="dropdown-keep-open" src="icon_menu.svg" width="20" height="20"></a>
+		      <div id="dropdown_content" class="dropdown_content">
+			<!-- the whole menu is initially hidden -->
+			<table width="100%">
+			  <tr><td><button id="dropdown_new" onclick="menu_new()"></button>&nbsp;<input class="dropdown-keep-open" type="text" name="text" id="dropdown_text" maxlength="10" oninput="menu_text_edit()"></td></tr>
+			  <!-- <tr><td><button>Delete current</button></td></tr> -->
+			  <tr><td><hr/></td></tr>
+
+			  <!-- this becomes the file list -->
+			  <tr><td><table id="dropdown_content_files" width="100%">
+			  </table></td></tr>
+			</table>
+		      </div>
+		    </div>		    
 		  </td>
 	      </tr></table>
 	  </td></tr>
@@ -52,10 +72,10 @@
 
 	  <!-- the following is for advanced users only -->
 	  <tr id="speed"><td>
-	      <table border="0" width="100%"><tr>
-		  <td width="32"><img src="icon_turtle.png"/></td>
+	      <table border="0" width="100%" cellpadding="2" cellspacing="0"><tr>
+		  <td width="32"><img src="icon_turtle.svg"/></td>
 		  <td><input type="range" id="speed_range" onchange="speed_change(this.value)" min="0" max="100" width="100%"/></td>
-		  <td width="32" align="right"><img src="icon_rabbit.png"/></td>
+		  <td width="32" align="right"><img src="icon_rabbit.svg"/></td>
 	      </tr></table>
 	  </td></tr>
 	  
@@ -64,7 +84,5 @@
     </tr>
   </table>
 
-  <div id="blocklyDiv" style="position: absolute;"></div>
-  <div id="textDiv" style="position: absolute; overflow-y: auto;"></div>
 </body>
 </html>

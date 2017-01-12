@@ -11,7 +11,8 @@ FLOAT_FORMAT = "{0:.3f}"    # limit to three digits to keep the output readable
 OUTPUT_DELAY = 0.01
 MAX_HIGHLIGHTS_PER_SEC = 25
 
-import time, sys, asyncio, websockets, queue, pty, json, math 
+import time, sys, asyncio, websockets, queue, pty, json, math, re
+import xml.etree.ElementTree
 import ftrobopy_custom
 
 # the websocket server is a seperate tread for handling the websocket
@@ -20,6 +21,7 @@ class WebsocketServerThread(QThread):
     setting = pyqtSignal(dict)
     python_code = pyqtSignal(str)
     blockly_code = pyqtSignal(str)
+    program_name = pyqtSignal(list)
     client_connected = pyqtSignal()
     speed_changed = pyqtSignal(int)
     
@@ -67,6 +69,8 @@ class WebsocketServerThread(QThread):
                     self.setting.emit( { 'skill': msg['skill'] })
                 if 'command' in msg:
                     self.command.emit(msg['command'])
+                if 'program_name' in msg:
+                    self.program_name.emit(msg['program_name'])
                 if 'python_code' in msg:
                     self.python_code.emit(msg['python_code'])
                 if 'blockly_code' in msg:
@@ -166,11 +170,15 @@ class RunThread(QThread):
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
 
+    def set_program_name(self, name):
+        self.program_name = name
+
     def run(self):
         self.stop_requested = False
         self.online = False
         path = os.path.dirname(os.path.realpath(__file__))
-        fname = os.path.join(path, "brickly.py")
+        fname = os.path.join(path, os.path.splitext(self.program_name[0])[0] + ".py")
+
         if not os.path.isfile(fname):
             fname = os.path.join(path, "default.py")
 
@@ -405,8 +413,9 @@ class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
 
-        # settings that may be sent from browser
+        # default settings that may later be overwritten by browser
         self.settings = { }
+        self.program_name = [ "brickly.xml", "brickly" ]
 
         translator = QTranslator()
         path = os.path.dirname(os.path.realpath(__file__))
@@ -421,6 +430,7 @@ class Application(TouchApplication):
         self.ws.client_connected.connect(self.on_client_connect)
         self.ws.python_code.connect(self.on_python_code)        # received python code
         self.ws.blockly_code.connect(self.on_blockly_code)      # received blockly code
+        self.ws.program_name.connect(self.on_program_name)
 
         # create the empty main window
         w = TouchWindow("Brickly")
@@ -470,10 +480,12 @@ class Application(TouchApplication):
         self.ws.send(json.dumps( { "running": not self.thread.isFinished() } ))
 
     def on_python_code(self, str):
-        self.write_to_file("brickly.py", str)
+        # store python code under same name as blockly code. But use py extension
+        fname = os.path.splitext(self.program_name[0])[0] + ".py"
+        self.write_to_file(fname, str)
         
     def on_blockly_code(self, str):
-        self.write_to_file("brickly.xml", str)
+        self.write_to_file(self.program_name[0], str)
      
     def on_setting(self, setting):
         for i in setting.keys():
@@ -484,6 +496,7 @@ class Application(TouchApplication):
         if str == "run":  self.program_run()
         if str == "stop": self.thread.stop()
         if str == "save_settings": self.save_settings()
+        if str == "list_program_files": self.list_programs()
 
     def save_settings(self):
         # save current settings
@@ -521,16 +534,52 @@ class Application(TouchApplication):
         self.ws.send(json.dumps( { "gui_cmd": "run" } ))
         
         # and start thread (again)
+        self.thread.set_program_name(self.program_name)
         self.thread.start()
 
     def program_stop(self):
+        # the web browser is asking to stop the current program
+        # the GUI will be updated once the thread has stoppped
         self.thread.stop()
 
     def on_menu_run(self):
+        # the local user has selected the run/stop menu entry
+        # on the touchscreen
         if not self.thread.isFinished():
             self.program_stop()
         else:
             self.program_run()
+
+    def list_programs(self):
+        # the browser client has requested a list of all files
+
+        # search for all brickly programs in current dir and return 
+        # their file names and program names
+        program_files = []
+        path = os.path.dirname(os.path.realpath(__file__))
+        files = [f for f in os.listdir(path) if re.match(r'^brickly-[0-9]*\.xml$', f)]
+        for f in files:
+            name = os.path.splitext(f)[0]
+            # try to extract the program name
+            root = xml.etree.ElementTree.parse(os.path.join(path, f)).getroot()
+            for child in root:
+                # remove any namespace from the tag
+                if '}' in child.tag: child.tag = child.tag.split('}', 1)[1]
+                if child.tag == "settings" and 'name' in child.attrib:
+                    name = child.attrib['name']
+            program_files.append( (f, name) )
+
+        # send whole list of files as json
+        self.ws.send(json.dumps( { "program_files": program_files } ))
+
+    def on_program_name(self, x):
+        # x[0] is the file name
+        # x[1] is the internal program name
+        self.program_name = x
+        
+        # also store the current program name in the settings
+        self.on_setting( { "program_file_name": x[0] } );
+        self.on_setting( { "program_name": x[1] } );
 
 if __name__ == "__main__":
     Application(sys.argv)

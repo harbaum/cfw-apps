@@ -62,6 +62,13 @@ body {
     background-color: #004475;
 }
  
+input[type=text] {
+    border-radius: 6px;
+    border: 2px solid lightgrey;
+    font-size: 16px;
+    font-weight: bold;
+}
+
 button {
     background-color: #448acc;
     color: white;
@@ -126,10 +133,14 @@ button[disabled=disabled], button:disabled {
 }
 
 /* http://www.cssportal.com/style-input-range/ */
+/* http://danielstern.ca/range.css/#/ */
+/*  background: #448acc; */
+/*  background-color: #046ab4; */
+
 input[type=range] {
   -webkit-appearance: none;
-  margin: 10px 0;
   width: 100%;
+  margin: 5.3px 0;
 }
 
 input[type=range]:focus {
@@ -138,92 +149,90 @@ input[type=range]:focus {
 
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
-  height: 10px;
+  height: 11.4px;
   cursor: pointer;
-  animate: 0.2s;
-  box-shadow: 1px 1px 1px #000000;
-  background: #448acc;
-  border-radius: 5px;
-  border: 1px solid #000000;
+  box-shadow: 2.5px 2.5px 7.7px rgba(0, 0, 0, 0.47), 0px 0px 2.5px rgba(13, 13, 13, 0.47);
+  background: rgba(4, 106, 180, 0.78);
+  border-radius: 1.3px;
+  border: 0.2px solid #000000;
 }
 
 input[type=range]::-webkit-slider-thumb {
-  box-shadow: 1px 1px 1px #000000;
-  border: 1px solid #000000;
-  height: 30px;
-  width: 15px;
-  border-radius: 5px;
-  background: #448acc;
+  box-shadow: 2.6px 2.6px 4.2px #000000, 0px 0px 2.6px #0d0d0d;
+  border: 2.8px solid #e4e3e4;
+  height: 22px;
+  width: 19px;
+  border-radius: 3px;
+  background: #ffffff;
   cursor: pointer;
   -webkit-appearance: none;
-  margin-top: -11px;
+  margin-top: -5.5px;
 }
 
 input[type=range]:focus::-webkit-slider-runnable-track {
-  background: #448acc;
+  background: rgba(4, 118, 200, 0.78);
 }
 
 input[type=range]::-moz-range-track {
   width: 100%;
-  height: 10px;
+  height: 11.4px;
   cursor: pointer;
-  animate: 0.2s;
-  box-shadow: 1px 1px 1px #000000;
-  background: #448acc;
-  border-radius: 5px;
-  border: 1px solid #000000;
+  box-shadow: 2.5px 2.5px 7.7px rgba(0, 0, 0, 0.47), 0px 0px 2.5px rgba(13, 13, 13, 0.47);
+  background: rgba(4, 106, 180, 0.78);
+  border-radius: 1.3px;
+  border: 0.2px solid #000000;
 }
 
 input[type=range]::-moz-range-thumb {
-  box-shadow: 1px 1px 1px #000000;
-  border: 1px solid #000000;
-  height: 30px;
-  width: 15px;
-  border-radius: 5px;
-  background: #FFFFFF;
+  box-shadow: 2.6px 2.6px 4.2px #000000, 0px 0px 2.6px #0d0d0d;
+  border: 2.8px solid #e4e3e4;
+  height: 22px;
+  width: 19px;
+  border-radius: 3px;
+  background: #ffffff;
   cursor: pointer;
 }
 
 input[type=range]::-ms-track {
   width: 100%;
-  height: 10px;
+  height: 11.4px;
   cursor: pointer;
-  animate: 0.2s;
   background: transparent;
   border-color: transparent;
   color: transparent;
 }
 
 input[type=range]::-ms-fill-lower {
-  background: #448acc;
-  border: 1px solid #000000;
-  border-radius: 10px;
-  box-shadow: 1px 1px 1px #000000;
+  background: rgba(4, 94, 160, 0.78);
+  border: 0.2px solid #000000;
+  border-radius: 2.6px;
+  box-shadow: 2.5px 2.5px 7.7px rgba(0, 0, 0, 0.47), 0px 0px 2.5px rgba(13, 13, 13, 0.47);
 }
 
 input[type=range]::-ms-fill-upper {
-  background: #448acc;
-  border: 1px solid #000000;
-  border-radius: 10px;
-  box-shadow: 1px 1px 1px #000000;
+  background: rgba(4, 106, 180, 0.78);
+  border: 0.2px solid #000000;
+  border-radius: 2.6px;
+  box-shadow: 2.5px 2.5px 7.7px rgba(0, 0, 0, 0.47), 0px 0px 2.5px rgba(13, 13, 13, 0.47);
 }
 
 input[type=range]::-ms-thumb {
-  box-shadow: 1px 1px 1px #000000;
-  border: 1px solid #000000;
-  height: 30px;
-  width: 15px;
-  border-radius: 5px;
-  background: #FFFFFF;
+  box-shadow: 2.6px 2.6px 4.2px #000000, 0px 0px 2.6px #0d0d0d;
+  border: 2.8px solid #e4e3e4;
+  height: 22px;
+  width: 19px;
+  border-radius: 3px;
+  background: #ffffff;
   cursor: pointer;
+  height: 11.4px;
 }
 
 input[type=range]:focus::-ms-fill-lower {
-  background: #448acc;
+  background: rgba(4, 106, 180, 0.78);
 }
 
 input[type=range]:focus::-ms-fill-upper {
-  background: #448acc;
+  background: rgba(4, 118, 200, 0.78);
 }
 
 /* get rid of the dotted box ... */
@@ -233,4 +242,87 @@ input[type=range]:focus::-ms-fill-upper {
 
 ::-moz-focus-inner {
   border: 0;
+}
+
+/* ---------- the file menu ----------- */
+
+.dropdown_button {
+    font-size: 32px;
+    font-weight: bold;
+    color: #FFFFFF;
+    text-decoration: none;
+    text-shadow: 5px 5px 10px black;
+    cursor: pointer;
+}
+
+.not-active {
+    pointer-events: none;
+    cursor: default;
+    color: lightgrey;
+    display: none;
+}
+
+/* Dropdown button on hover & focus */
+.dropdown_button:hover, .dropdown_button:focus {
+    text-shadow: 2px 2px 10px black;
+}
+
+/* The container <div> - needed to position the dropdown content */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+table#dropdown_content_files {
+/*    table-layout: fixed; */
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown_content {
+    z-index: 100;
+    right: 0;
+    display: none;
+    position: absolute;
+    background-color: #448acc;
+    min-width: 100px;
+    border: 1px solid lightgrey;    
+    box-shadow: 8px 8px 10px rgba(0,0,0,0.4);
+}
+
+/* Links inside the dropdown */
+.dropdown_content a {
+    text-align: center;
+    color: color;
+    padding: 2px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+/* seperator inside the dropdown */
+.dropdown_content hr {
+    margin-top: 0px; 
+    margin-bottom: 0px
+}
+
+/* Change color of dropdown links on hover */
+.dropdown_content a:not(.dropdown_not_active):hover { 
+    background-color: #046ab4;
+    cursor: pointer;
+}
+
+.dropdown_not_active {
+    color: lightgrey;
+    cursor: default;
+}
+
+/* the font color of the currently selected program in the menu */
+.dropdown_selected {
+    color: #fcce04;
+}
+
+/* Show the dropdown menu (use JS to add this class to the */
+/* .dropdown_content container when the user clicks on the */
+/* dropdown button) */
+.show {
+    display:block;
 }
