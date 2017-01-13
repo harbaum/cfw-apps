@@ -1,12 +1,12 @@
 // Brickly specifc javascript code
 
 var Code = {};
-var DEFAULT = [ "brickly.xml", "brickly" ];
+var USER_FILES = "user/"
 Code.workspace = null;
 Code.Msg = {};
-Code.speed = 90;                    // 90% default speed
-Code.skill = 1;                     // GUI level: 1 = beginner ... expert
-Code.program_name = DEFAULT;        // default name
+Code.speed = 90;                                     // 90% default speed
+Code.skill = 1;                                      // GUI level: 1 = beginner ... expert
+Code.program_name = [ "brickly-0.xml", "Brickly" ];  // default file name and program name
 Code.connected = false;
 Code.spinner = null;
 Code.files = [ ]
@@ -40,19 +40,46 @@ function name_exists(a) {
     return false;
 }
 
+// make sure the user doesn't use html tags in the program name
+function htmlEscape(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function htmlDecode(str){
+    return str
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+}
+
+/* construct the main menu */
+function menu_update() {
+    document.getElementById("dropdown_new").innerHTML = MSG['dropdown_new'];
+    menu_disable(false);
+    menu_append_files(Code.files);
+    menu_text_edit();                    // enable/disable "new" button as required
+}
+
 function menu_text_edit() {
     // check for current text and disable new button if such a name
     // already exists
-    var name = document.getElementById("dropdown_text").value;
+    var name = htmlEscape(document.getElementById("dropdown_text").value);
 
     document.getElementById("dropdown_new").disabled = 
 	(name_exists(name) || name == "");
 }
 
-function menu_new() {
+function menu_file_new() {
     // now find an unused file name in the list
     var fname = null;
-    for(var i = 1; i < 64; i++) {
+    for(var i = 0; i < 64; i++) {
 	var tmp = "brickly-" + i + ".xml";
 	if(!file_exists(tmp)) {
 	    fname = tmp;
@@ -60,8 +87,8 @@ function menu_new() {
 	}
     }
 
-    // this should never happen as we disable the new button
-    // after 63 files
+    // TODO: prevent this from happening by disabling the new button
+    // after 64 files
     if(!fname) {
 	alert("Too many files!");
 	return;
@@ -71,28 +98,27 @@ function menu_new() {
  
     // create a new program
     Code.workspace.clear();
-    Code.program_name = [ fname, document.getElementById("dropdown_text").value ];
+    Code.program_name = [ fname, htmlEscape(document.getElementById("dropdown_text").value) ];
+    document.title = "Brickly: " + htmlDecode(Code.program_name[1]);
 
-    // Append to list of files even though it has never been saved yet ...
-    Code.files.push(Code.program_name)
-    menu_init();
+    menu_update();
 }
 
-/* construct the main menu */
-function menu_init() {
-    document.getElementById("dropdown_new").innerHTML = MSG['dropdown_new'];
-    menu_disable(false);
-    menu_append_files(Code.files);
-    menu_text_edit();   // update new button if required
+function menu_file_load(fname, name) {
+    Code.program_name = [ fname, htmlEscape(name) ]; // set the new file name
+    document.title = "Brickly: " + htmlDecode(Code.program_name[1]);
+    menu_update();                           // redo menu to highlight the newly loaded file
+    program_load(USER_FILES + fname);        // and finally load the file
+
+    // save on TXT that this is now the program
+    Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
+    Code.ws.send(JSON.stringify( { command: "save_settings" } ));
+
+    // request new list as the previously active program may have been deleted
+    Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
 }
 
-function load_file(fname, name) {
-    Code.program_name = [ fname, name ];
-    menu_init();
-    loadCode(fname);
-}
-
-function menu_entry(a) {
+function menu_create_entry(a) {
     var cl = ""
     var ar = ""
 
@@ -101,7 +127,7 @@ function menu_entry(a) {
 	cl = 'class="dropdown_selected dropdown_not_active" '
     else
 	// othewise make it trigger an event
-	ar = 'onclick="load_file(\'' + a[0] + '\',\'' + a[1] + '\')"'
+	ar = 'onclick="menu_file_load(\'' + a[0] + '\',\'' + a[1] + '\')"'
 
     // make sure name doesn't wrap
     var name = a[1].replace(/ /g, '&nbsp;');
@@ -110,26 +136,33 @@ function menu_entry(a) {
 
 /* add files to the menu */
 function menu_append_files(f) {
+    var loc_f = f;
+
     content_files = document.getElementById("dropdown_content_files");
 
+    // check if current file exists in list and
+    // append it if not. Thus programs not yet saved in TXT side
+    // will show up in the menu
+    if(!file_exists(Code.program_name[0]))
+	loc_f.push(Code.program_name)
+    
     // determine number of columns for a square setup
-    cols = Math.floor(1+Math.sqrt(f.length-1));
+    cols = Math.floor(1+Math.sqrt(loc_f.length-1));
     // limit number of columns
     // if(cols > 3) cols = 3;
 
     // remove all existing files
-    rows = Math.floor(((f.length-1)/cols)+1)
+    rows = Math.floor(((loc_f.length-1)/cols)+1)
 
     var i;
     var new_content_files = "";
 
     // the files come as an array of arrays
-    for(i = 0; i < f.length; i++) {
+    for(i = 0; i < loc_f.length; i++) {
 	// first column?
 	if((i % cols) == 0) new_content_files += "<tr>";
 	    
-	// console.log("type: %o", obj.program_files[i]);
-	new_content_files += menu_entry(f[i]);
+	new_content_files += menu_create_entry(loc_f[i]);
 
 	if((i % cols) == (cols-1)) new_content_files += "</tr>";
     }
@@ -202,6 +235,34 @@ function loadToolbox(skill_level) {
     }
     http.send();
 }
+
+function onWorkspaceCleared(event) {
+    if((event.type == Blockly.Events.DELETE) &&
+       (Code.workspace.getAllBlocks().length == 0)) {
+	// the user just cleared the whole workspace. So delete
+	// the program on TXT side as well
+	
+	// TODO: perhals confirm delete
+	// confirm(MSG['confirm_delete'])
+	
+	// make sure the current program is set on TXT side ...
+	Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
+	
+	// ... then delete it ...
+	Code.ws.send(JSON.stringify( { command: "delete" } ));
+	
+	// ... and finally update file list
+	Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
+	
+	// disable the run button
+	button_run_enable(false);
+    }
+    
+    // enable the run button once the first block has been added
+    if((event.type == Blockly.Events.CREATE) &&
+       (Code.workspace.getAllBlocks().length >= 1))
+	button_run_enable(true);
+}
     
 function toolbox_install(toolboxText) {
     // Interpolate translated messages into toolbox.
@@ -212,7 +273,7 @@ function toolbox_install(toolboxText) {
 
     var toolbox = Blockly.Xml.textToDom(toolboxText);
     Code.workspace = Blockly.inject('blocklyDiv',
-				    { media: 'media/',
+				    { media: 'blockly/media/',
 				      toolbox: toolbox,
 				      // scrollbars: false,  // 
 				      zoom: { // controls: true,
@@ -223,12 +284,14 @@ function toolbox_install(toolboxText) {
 					      scaleSpeed: 2
 					    }
 				    } );
-    
+
+    Code.workspace.addChangeListener(onWorkspaceCleared);
+
     button_set_state(true, true);
     display_state(MSG['stateDisconnected']);
 
     // fixme: this must not happen before screen resizing is done
-    setTimeout(function() { loadCode( Code.program_name[0] ) }, 100);
+    setTimeout(function() { program_load( USER_FILES + Code.program_name[0] ) }, 100);
     
     window.addEventListener('resize', onresize, false);
     onresize();
@@ -278,18 +341,36 @@ function display_state(str) {
     document.getElementById("stateDiv").innerHTML = str;
 }
 
+// the run button may only be enabled if there's at least
+// none block in the workspace
+function button_run_enable(enable) {
+    // if button is in "run" mode enable and disable
+    // it immediately
+    but = document.getElementById("button");
+    but.run_enabled = enable;
+
+    // if the button is currently in "run mode" (and not "stopp")
+    // then disable and enable it immediately
+    if(but.run_mode)
+	but.disabled = !enable;
+}
+
 // switch between "Run..." and "Stop!" button
 function button_set_state(enable, run) {
     but = document.getElementById("button");
     but.disabled = !enable;
-    if(enable) {
-        if(run) {
-            but.innerHTML = MSG['buttonRun'];
-            but.onclick = runCode;
-        } else {
-            but.innerHTML = MSG['buttonStop'];
-            but.onclick = stopCode;
-        }
+    but.run_mode = run;
+    if(run) {
+        but.innerHTML = MSG['buttonRun'];
+        but.onclick = program_run;
+
+	// if run is not enabled (workspace is empty)
+	// then keep button disabled
+	if(enable && !but.run_enabled)
+	    but.disabled = true;
+    } else {
+        but.innerHTML = MSG['buttonStop'];
+        but.onclick = program_stop;
     }
 }
 
@@ -343,9 +424,8 @@ function ws_start(initial) {
 	    }
 
 	    if(typeof obj.program_files !== 'undefined') {
-		Code.files = [ DEFAULT ]
-		Code.files.push.apply(Code.files, obj.program_files);
-		menu_init();
+		Code.files = obj.program_files;
+		menu_update();
 	    }
 
 	    if(typeof obj.running !== 'undefined') {
@@ -357,9 +437,13 @@ function ws_start(initial) {
 		}
 	    }
 
-            if(typeof obj.stdout !== 'undefined') display_text("<tt><b>"+html_escape(obj.stdout)+"</b></tt>");
-            if(typeof obj.stderr !== 'undefined') display_text("<font color='red'><tt><b>"+
-					    html_escape(obj.stderr)+"</b></tt></font>");
+            if(typeof obj.stdout !== 'undefined') 
+		display_text("<tt><b>"+html_escape(obj.stdout)+"</b></tt>");
+
+            if(typeof obj.stderr !== 'undefined')
+		display_text("<font color='red'><tt><b>"+
+			     html_escape(obj.stderr)+"</b></tt></font>");
+
 	    if(typeof obj.highlight !== 'undefined') {
 		if(obj.highlight == "none") {
 		    display_state(MSG['stateProgramEnded']);
@@ -395,33 +479,31 @@ function ws_start(initial) {
             //try to reconnect in 10ms
 	    if(!initial) setTimeout(function(){ ws_start(false) }, 10);
         } else {
+	    // connection lost
             display_state(MSG['stateDisconnected']);
             Code.connected = false;
             button_set_state(true, true);
 	    Code.workspace.highlightBlock();
+	    menu_disable(true);
 	    delete Code.ws;
         }
     };
 };
 
-function stopCode() {
+function program_stop() {
     button_set_state(false, false);
     Code.ws.send(JSON.stringify( { command: "stop" } ));
 }
 
-function loadCode(name) {
+function program_load(name) {
     var http = new XMLHttpRequest();
-    http.open("GET", name + "?random="+new Date().getTime());
+    http.open("GET",  name + "?random="+new Date().getTime());
     http.setRequestHeader("Content-type", "application/xml");
     http.onreadystatechange = function() {
         if (http.readyState == XMLHttpRequest.DONE) {
-            if (http.status != 200) {
-		if (name != "default.xml") {
-		    loadCode("./default.xml");
-		}
-            } else {
-		Code.workspace.clear();
+	    Code.workspace.clear();
 
+            if (http.status == 200) {
 		var min_x = Number.POSITIVE_INFINITY;
 		var min_y = Number.POSITIVE_INFINITY;
 
@@ -442,8 +524,10 @@ function loadCode(name) {
 		    // change the origin of the root blocks
 		    // find the minimum x and y coordinates used
 		    if (name == 'block') {
-			if(min_x > parseInt(xmlChild.getAttribute('x')))  min_x = parseInt(xmlChild.getAttribute('x'));
-			if(min_y > parseInt(xmlChild.getAttribute('y')))  min_y = parseInt(xmlChild.getAttribute('y'));
+			if(min_x > parseInt(xmlChild.getAttribute('x')))  
+			    min_x = parseInt(xmlChild.getAttribute('x'));
+			if(min_y > parseInt(xmlChild.getAttribute('y')))
+			    min_y = parseInt(xmlChild.getAttribute('y'));
 		    }
 		}
 
@@ -467,6 +551,8 @@ function loadCode(name) {
     http.send();
 }
 
+/* ------------------------- busy spinner of top of the text window --------------------------*/
+/* the spinner is shown when the app is being launched as this takes some time */
 function spinner_start() {
     var objDiv = document.getElementById("textArea");
     Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
@@ -500,15 +586,15 @@ function send_and_run_code() {
     // set current program name
     Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
 
-    // send python and blockly version fo the current code
-    Code.ws.send(JSON.stringify( { python_code: python_code } ));
-    Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
-
     // send various parameters
     Code.ws.send(JSON.stringify( { speed: Code.speed } ));
     Code.ws.send(JSON.stringify( { skill: Code.skill } ));
     Code.ws.send(JSON.stringify( { lang: Code.lang } ));
     Code.ws.send(JSON.stringify( { command: "save_settings" } ));
+
+    // send python and blockly version fo the current code
+    Code.ws.send(JSON.stringify( { python_code: python_code } ));
+    Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
 
     // and finally request app to be started
     Code.ws.send(JSON.stringify( { command: "run" } ));
@@ -521,7 +607,7 @@ function send_and_run_code() {
     Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
 }
     
-function runCode() {
+function program_run() {
     // add highlight information to the code. Make it commented so the code
     // will run on any python setup. If highlighting is wanted these lines
     // need to be uncommented on server side
@@ -600,6 +686,8 @@ var onresize = debounce(function() {
     Blockly.svgResize(Code.workspace);
 }, 50);
 
+// ----------------- verify settings read from settings.js -----------
+
 // "lang" is set in settings.js
 // language may not be set by now. Use english as default then
 if (typeof lang === 'undefined') { lang = 'en'; }
@@ -610,12 +698,13 @@ if (typeof skill === 'undefined') { skill = 1; }
 // try to override from url
 Code.skill = parseInt(get_parm("skill", skill));
 
+// the settings may also contain info about the name of
+// the last program used
 if((typeof program_name !== 'undefined')&&
-   (typeof program_file_name !== 'undefined')) {
-    console.log("FILE: %s %s", program_name, program_file_name)
+   (typeof program_file_name !== 'undefined'))
     Code.program_name = [ program_file_name, program_name ]
-}
 
+document.title = "Brickly: " + htmlDecode(Code.program_name[1]);
 document.head.parentElement.setAttribute('lang', Code.lang);
 document.head.parentElement.setAttribute('skill', Code.skill);
 document.write('<script src="blockly/' + Code.lang + '.js"></script>\n');

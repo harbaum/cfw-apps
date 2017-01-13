@@ -38,7 +38,7 @@ var MSG = {
     blockInputModeSwitch: "Schalterzustand",
     blockInputModeResistor: "Widerstand",
     blockInputModeResistor2: "Widerstand 2",
-    blockInputModeUltrasonic: "Distanz",
+    blockInputModeUltrasonic: "Distanz (cm)",
     blockInputModeAnalog: "Analogwert",
     blockInputModeDigital: "Digitalwert",
     

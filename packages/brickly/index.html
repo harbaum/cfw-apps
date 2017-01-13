@@ -8,7 +8,7 @@
   <script src="./blockly/blockly_compressed.js"></script>
   <script src="./blockly/blocks_compressed.js"></script>
   <script src="./blockly/python_compressed.js"></script>
-  <script src="./settings.js"></script>
+  <script src="./user/settings.js"></script>
   <script src="./code.js"></script>
   <script src="./custom_blocks.js"></script>
   <script src="./spin.js"></script>
@@ -45,17 +45,20 @@
 	<table width="100%" height="100%" cellpadding="0" cellspacing="0">
 	  <tr><td>
 	      <table width="100%" border="0" cellpadding="0"><tr>
+		  <!-- the run/stop button -->
 		  <td width="33%"><button id="button"></button></td>
+		  <!-- the connection state text -->
 		  <td width="33%" align="center">
 		    <div id="stateDiv" style="color: #fcce04;"></div>
 		  </td>
+		  <!-- the dropdown menu -->
 		  <td height="40" width="33%" align="right">
 		    <div id="dropdown" class="dropdown">
 		      <a id="dropdown_button" class="dropdown_button dropdown-keep-open" onclick="menu_show()"><img class="dropdown-keep-open" src="icon_menu.svg" width="20" height="20"></a>
 		      <div id="dropdown_content" class="dropdown_content">
 			<!-- the whole menu is initially hidden -->
 			<table width="100%">
-			  <tr><td><button id="dropdown_new" onclick="menu_new()"></button>&nbsp;<input class="dropdown-keep-open" type="text" name="text" id="dropdown_text" maxlength="10" oninput="menu_text_edit()"></td></tr>
+			  <tr><td><button id="dropdown_new" onclick="menu_file_new()"></button>&nbsp;<input class="dropdown-keep-open" type="text" name="text" id="dropdown_text" maxlength="10" size="10" oninput="menu_text_edit()"></td></tr>
 			  <!-- <tr><td><button>Delete current</button></td></tr> -->
 			  <tr><td><hr/></td></tr>
 

@@ -7,6 +7,7 @@ from TouchStyle import *
 PORT = 9002
 CLIENT = ""    # any client
 
+USER_PROGRAMS = "user"      # directory containing the user programs
 FLOAT_FORMAT = "{0:.3f}"    # limit to three digits to keep the output readable
 OUTPUT_DELAY = 0.01
 MAX_HIGHLIGHTS_PER_SEC = 25
@@ -177,45 +178,44 @@ class RunThread(QThread):
         self.stop_requested = False
         self.online = False
         path = os.path.dirname(os.path.realpath(__file__))
-        fname = os.path.join(path, os.path.splitext(self.program_name[0])[0] + ".py")
+        fname = os.path.join(path, USER_PROGRAMS, os.path.splitext(self.program_name[0])[0] + ".py")
 
-        if not os.path.isfile(fname):
-            fname = os.path.join(path, "default.py")
-
-        # load and execute locally stored blockly code
-        with open(fname, encoding="UTF-8") as f:
-            try:
-                # replace global calls by calls into the local class
-                # this could be done on javascript side but this would make
-                # the bare generated python code harder to read
-                global wrapper
-                wrapper = self    # make self accessible to all functions of blockly code
+        # file really does exist?
+        if os.path.isfile(fname):
+            # load and execute locally stored blockly code
+            with open(fname, encoding="UTF-8") as f:
+                try:
+                    # replace global calls by calls into the local class
+                    # this could be done on javascript side but this would make
+                    # the bare generated python code harder to read
+                    global wrapper
+                    wrapper = self    # make self accessible to all functions of blockly code
                 
-                code_txt = f.read()
-                code_txt = code_txt.replace("# speed", "wrapper.ws_thread.speed");
-                code_txt = code_txt.replace("# highlightBlock(", "wrapper.highlightBlock(");
-                code_txt = code_txt.replace("setOutput(", "wrapper.setOutput(");
-                code_txt = code_txt.replace("setMotor(", "wrapper.setMotor(");
-                code_txt = code_txt.replace("wait(", "wrapper.wait(");
-                code_txt = code_txt.replace("print(", "wrapper.print(");
-                code_txt = code_txt.replace("str(", "wrapper.str(");
-                code_txt = code_txt.replace("setMotorOff(", "wrapper.setMotorOff(");
-                code_txt = code_txt.replace("motorHasStopped(", "wrapper.motorHasStopped(");
-                code_txt = code_txt.replace("getInput(", "wrapper.getInput(");
-                code_txt = code_txt.replace("inputConvR2T(", "wrapper.inputConvR2T(");
-                code_txt = code_txt.replace("playSound(", "wrapper.playSound(");
+                    code_txt = f.read()
+                    code_txt = code_txt.replace("# speed", "wrapper.ws_thread.speed");
+                    code_txt = code_txt.replace("# highlightBlock(", "wrapper.highlightBlock(");
+                    code_txt = code_txt.replace("setOutput(", "wrapper.setOutput(");
+                    code_txt = code_txt.replace("setMotor(", "wrapper.setMotor(");
+                    code_txt = code_txt.replace("wait(", "wrapper.wait(");
+                    code_txt = code_txt.replace("print(", "wrapper.print(");
+                    code_txt = code_txt.replace("str(", "wrapper.str(");
+                    code_txt = code_txt.replace("setMotorOff(", "wrapper.setMotorOff(");
+                    code_txt = code_txt.replace("motorHasStopped(", "wrapper.motorHasStopped(");
+                    code_txt = code_txt.replace("getInput(", "wrapper.getInput(");
+                    code_txt = code_txt.replace("inputConvR2T(", "wrapper.inputConvR2T(");
+                    code_txt = code_txt.replace("playSound(", "wrapper.playSound(");
 
-                # code = compile(code_txt, "brickly.py", 'exec')
-                # exec(code, globals())
+                    # code = compile(code_txt, "brickly.py", 'exec')
+                    # exec(code, globals())
 
-                exec(code_txt, globals())
+                    exec(code_txt, globals())
                 
-            except SyntaxError as e:
-                print("Syntax error: " + str(e), file=sys.stderr)
-            except UserInterrupt as e:
-                self.highlight.write("interrupted")
-            except:
-                print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
+                except SyntaxError as e:
+                    print("Syntax error: " + str(e), file=sys.stderr)
+                except UserInterrupt as e:
+                    self.highlight.write("interrupted")
+                except:
+                    print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
 
             self.done.emit()
             self.highlight.write("none")
@@ -413,9 +413,19 @@ class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
 
+        ## TODO: remove this
+        # move user programs from old to new place
+        src_path = os.path.dirname(os.path.realpath(__file__))
+        dst_path = os.path.join(src_path, USER_PROGRAMS)
+        files = [f for f in os.listdir(src_path) if re.match(r'^brickly-[0-9]*\.xml$', f)]
+        files = files + ([f for f in os.listdir(src_path) if re.match(r'^brickly-[0-9]*\.py$', f)])
+        for i in files:
+            print(os.path.join(src_path, i), os.path.join(dst_path, i))
+            #os.rename(os.path.join(src_path, i), os.path.join(dst_path, i))
+
         # default settings that may later be overwritten by browser
         self.settings = { }
-        self.program_name = [ "brickly.xml", "brickly" ]
+        self.program_name = [ "brickly-0.xml", "brickly" ]
 
         translator = QTranslator()
         path = os.path.dirname(os.path.realpath(__file__))
@@ -468,9 +478,14 @@ class Application(TouchApplication):
 
         self.ws.stop()
 
+    def delete_file(self, name):
+        path = os.path.dirname(os.path.realpath(__file__))
+        fname = os.path.join(path, USER_PROGRAMS, name)
+        if os.path.isfile(fname): os.remove(fname)
+
     def write_to_file(self, name, data):
         path = os.path.dirname(os.path.realpath(__file__))
-        fname = os.path.join(path, name)
+        fname = os.path.join(path, USER_PROGRAMS, name)
         with open(fname, 'w', encoding="UTF-8") as f:
             f.write(data)
             f.close()
@@ -495,6 +510,7 @@ class Application(TouchApplication):
         # handle commands received from browser
         if str == "run":  self.program_run()
         if str == "stop": self.thread.stop()
+        if str == "delete": self.program_delete()
         if str == "save_settings": self.save_settings()
         if str == "list_program_files": self.list_programs()
 
@@ -522,6 +538,12 @@ class Application(TouchApplication):
     def on_program_ended(self):
         self.menu_run.setText(QCoreApplication.translate("Menu","Run..."))
         
+    def program_delete(self):
+        # delete the blockly xml file ...
+        self.delete_file(self.program_name[0])
+        # ... and the generated python as well
+        self.delete_file(os.path.splitext(self.program_name[0])[0] + ".py")
+
     def program_run(self):
         # change "Run..." to "Stop!"
         self.menu_run.setText(QCoreApplication.translate("Menu","Stop!"))
@@ -556,7 +578,7 @@ class Application(TouchApplication):
         # search for all brickly programs in current dir and return 
         # their file names and program names
         program_files = []
-        path = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.join(os.path.dirname(os.path.realpath(__file__)), USER_PROGRAMS)
         files = [f for f in os.listdir(path) if re.match(r'^brickly-[0-9]*\.xml$', f)]
         for f in files:
             name = os.path.splitext(f)[0]

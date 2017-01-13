@@ -38,7 +38,7 @@ var MSG = {
     blockInputModeSwitch: "switch state",
     blockInputModeResistor: "resistance",
     blockInputModeResistor2: "resistance 2",
-    blockInputModeUltrasonic: "distance",
+    blockInputModeUltrasonic: "distance (cm)",
     blockInputModeAnalog: "analogue",
     blockInputModeDigital: "digital",
     
