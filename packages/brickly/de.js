@@ -1,13 +1,17 @@
 // german translations for the app specific part
 
 var MSG = {
-    buttonRun: "Los...",
+    buttonRun: "Los",
     buttonStop: "Stopp!",
     stateDisconnected: "getrennt",
     stateConnected: "verbunden",
     stateConnecting: "verbinde...",
     stateRunning: "läuft...",
     stateProgramEnded: "beendet",
+
+    // messages
+    confirm_delete: "Wirklich das ganze Programm '%1' löschen?",
+    delete_not_connected: "Zum Löschen des ganzen Programms muss der TXT verbunden sein",
 
     // the menu
     dropdown_new: "Neu",
@@ -22,6 +26,8 @@ var MSG = {
     skill5: "Experte",
     
     // blocks
+    blockStartToolTip: "Hier startet die Programmausführung",
+
     blockWaitMessage: "warte %1 Sekunden",
     blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten",
     blockRepeatMessage: "wiederhole %1 %2",

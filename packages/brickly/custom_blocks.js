@@ -5,30 +5,29 @@ CustomBlocksHUE = 180
 InputBlocksHUE = 200
 OutputBlocksHUE = 220
 
-// json definition of custom blocks
 var block_wait = {
-  "type": "wait",
-  "message0": MSG['blockWaitMessage'],
-  "args0": [ { "type": "input_value", "name": "seconds", "check": "Number" } ],
-  "inputsInline": true,
-  "previousStatement": null,
-  "nextStatement": null,
-  "colour": CustomBlocksHUE,
-  "tooltip": MSG['blockWaitToolTip']
+    "type": "wait",
+    "message0": MSG['blockWaitMessage'],
+    "args0": [ { "type": "input_value", "name": "seconds", "check": "Number" } ],
+    "inputsInline": true,
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": CustomBlocksHUE,
+    "tooltip": MSG['blockWaitToolTip']
 };
 
 var block_repeat = {
-  "type": "repeat",
-  "message0": MSG['blockRepeatMessage'],
-  "args0": [ {
-      "type": "input_dummy"
+    "type": "repeat",
+    "message0": MSG['blockRepeatMessage'],
+    "args0": [ {
+	"type": "input_dummy"
     },{
-      "type": "input_statement",
-      "name": "STATEMENTS"
+	"type": "input_statement",
+	"name": "STATEMENTS"
     } ],
-  "previousStatement": null,
-  "colour": Blockly.Blocks.loops.HUE,
-  "tooltip": MSG['blockRepeatToolTip']
+    "previousStatement": null,
+    "colour": Blockly.Blocks.loops.HUE,
+    "tooltip": MSG['blockRepeatToolTip']
 };
 
 var block_pwm_value = {
@@ -240,8 +239,7 @@ var block_input_converter_r2t = {
 	"type": "input_value",
 	"name": "value",
 	"check": "Number"
-    }
-	     ],
+    } ],
     "output": "Number",
     "colour": InputBlocksHUE,
     "tooltip": MSG['blockInputConvTempToolTip']
@@ -306,6 +304,11 @@ var block_sound = {
 };
 
 // generate python code for custom blocks
+Blockly.Python['start'] = function(block) {
+  var code = '# program start\n';
+  return code;
+};
+
 Blockly.Python['wait'] = function(block) {
     var value_seconds = Blockly.Python.valueToCode(block, 'seconds', Blockly.Python.ORDER_ATOMIC);
     if(!value_seconds) value_seconds = 0;
@@ -392,6 +395,22 @@ Blockly.Python['sound'] = function(block) {
 
 function custom_blocks_init() {
     // make custom blocks known to blockly
+
+    // the start block has some additional brickly specific magic and
+    // is thus created programmatically
+    Blockly.Blocks['start'] = {
+	init: function() {
+	    // add icon and program name to block
+	    this.appendDummyInput()
+		.appendField(new Blockly.FieldImage("icon_start.svg", 16, 16, "|>"))
+		.appendField(new Blockly.FieldLabel(htmlDecode(Code.program_name[1]), 'program_name'))
+	    
+	    this.setNextStatement(true, null);
+	    this.setColour(225);
+	    this.setTooltip(MSG['blockStartToolTip']);
+	} 
+    };
+    
     Blockly.Blocks['wait'] = {
 	init: function() { this.jsonInit(block_wait); } };
     Blockly.Blocks['repeat'] = {

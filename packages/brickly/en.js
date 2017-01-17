@@ -1,13 +1,16 @@
 // english translations for the app specific part
 
 var MSG = {
-    buttonRun: "Run...",
+    buttonRun: "Run",
     buttonStop: "Stop!",
     stateDisconnected: "disconnected",
     stateConnected: "connected",
     stateConnecting: "connecting...",
     stateRunning: "running...",
     stateProgramEnded: "ended",
+
+    confirm_delete: "Really delete the entire program '%1'?",
+    delete_not_connected: "The TXT has to be connected to be able to delete the entire program",
 
     // the menu
     dropdown_new: "New",
@@ -22,6 +25,8 @@ var MSG = {
     skill5: "expert",
 
     // blocks
+    blockStartToolTip: "Program execution starts here",
+
     blockWaitMessage: "wait %1 seconds",
     blockWaitToolTip: "Pause program execution a given time",
     blockRepeatMessage: "repeat %1 %2",

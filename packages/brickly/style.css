@@ -69,6 +69,11 @@ input[type=text] {
     font-weight: bold;
 }
 
+.program_name {
+/*    font-style: italic; */
+    text-shadow: 2px 2px 2px black;
+}
+
 button {
     background-color: #448acc;
     color: white;

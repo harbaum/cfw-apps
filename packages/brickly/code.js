@@ -17,10 +17,15 @@ function menu_show() {
     document.getElementById("dropdown_content").classList.toggle("show");
 }
 
+function menu_close() {
+    document.getElementById("dropdown_content").classList.remove("show");
+}
+
 function menu_disable(disabled) {
-    if(disabled)
+    if(disabled) {
 	document.getElementById("dropdown_button").classList.add("not-active");
-    else
+	menu_close();
+    } else
 	document.getElementById("dropdown_button").classList.remove("not-active");
 }
 
@@ -76,6 +81,29 @@ function menu_text_edit() {
 	(name_exists(name) || name == "");
 }
 
+function workspace_start() {
+    // create a new program
+    Blockly.Events.disable();
+    Code.workspace.clear();
+    Blockly.Events.enable();
+
+    document.title = "Brickly: " + htmlDecode(Code.program_name[1]); 
+
+    // an empty workspace with only the start bloick
+    xml_text = '<xml xmlns="http://www.w3.org/1999/xhtml"><block type="start" id="' + 
+	Blockly.utils.genUid()+'" x="10" y="20"></block></xml>'
+
+    // alternally use this to add the start block:
+    // Code.workspace.addTopBlock()
+
+    // add the "start" block
+    xml = Blockly.Xml.textToDom(xml_text);
+    Blockly.Xml.domToWorkspace(xml, Code.workspace);
+
+    // center if scrolling is enabled
+    Code.workspace.scrollCenter();
+}
+
 function menu_file_new() {
     // now find an unused file name in the list
     var fname = null;
@@ -96,10 +124,10 @@ function menu_file_new() {
 
     // fname is now a valid and unused filename
  
-    // create a new program
-    Code.workspace.clear();
     Code.program_name = [ fname, htmlEscape(document.getElementById("dropdown_text").value) ];
-    document.title = "Brickly: " + htmlDecode(Code.program_name[1]);
+
+    // create a new program
+    workspace_start();
 
     menu_update();
 }
@@ -179,13 +207,8 @@ function menu_append_files(f) {
 
 // Close the dropdown menu if the user clicks outside of it
 window.onclick = function(event) {
-	if(!event.target.classList.contains('dropdown-keep-open')) {
-	    var dropdowns = document.getElementsByClassName("dropdown_content");
-	    for (var i = 0; i < dropdowns.length; i++) {
-		if (dropdowns[i].classList.contains('show'))
-		    dropdowns[i].classList.remove('show');
-	    }
-	}
+    if(!event.target.classList.contains('dropdown-keep-open')) 
+	menu_close();
 }
 
 function init() {
@@ -203,12 +226,15 @@ function init() {
     Blockly.HSV_SATURATION = 0.7;   // global saturation
     Blockly.HSV_VALUE = 0.6;        // global brightness
 
+    Blockly.BlockSvg.START_HAT = true;
+    
     // enable/disable the speed control
     if(Code.skill > 1)	document.getElementById("speed_range").value = Code.speed;
     else                document.getElementById("speed").style.display = "none";
 
     // below skill level 3 hide the menu
     if(Code.skill <= 2) document.getElementById("dropdown").style.display = "none";    
+
     // initially disable the dropdown menu
     menu_disable(true);
 
@@ -237,13 +263,25 @@ function loadToolbox(skill_level) {
 }
 
 function onWorkspaceCleared(event) {
+    // a program is deleted by deleting the stack with the start block
+    // on top. This only works if the TXT is connected
     if((event.type == Blockly.Events.DELETE) &&
-       (Code.workspace.getAllBlocks().length == 0)) {
-	// the user just cleared the whole workspace. So delete
-	// the program on TXT side as well
-	
-	// TODO: perhals confirm delete
-	// confirm(MSG['confirm_delete'])
+       (event.oldXml.getAttribute("type") == "start")) {
+
+	if(!Code.connected || (!confirm(MSG['confirm_delete'].replace("%1", 
+                  htmlDecode(Code.program_name[1]))))) {
+
+	    // undo delete
+	    Code.workspace.undo(false);
+
+	    // the workspace jumps around when doing this. so recenter ...
+	    Code.workspace.scrollCenter();
+
+	    if(!Code.connected)
+		alert(MSG['delete_not_connected'])
+
+	    return;
+	}
 	
 	// make sure the current program is set on TXT side ...
 	Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
@@ -256,6 +294,8 @@ function onWorkspaceCleared(event) {
 	
 	// disable the run button
 	button_run_enable(false);
+
+	workspace_start();
     }
     
     // enable the run button once the first block has been added
@@ -277,16 +317,21 @@ function toolbox_install(toolboxText) {
 				      toolbox: toolbox,
 				      // scrollbars: false,  // 
 				      zoom: { // controls: true,
-					      wheel: true,
-					      // startScale: 1.0,
-					      // maxScale: 3,
-					      // minScale: 0.3,
-					      scaleSpeed: 2
-					    }
+					  wheel: true,
+					  // startScale: 1.0,
+					  maxScale: 2,
+					  minScale: 0.5,
+					  scaleSpeed: 2
+				      }
 				    } );
 
+    // disable and enable run button depending on workspace being used
+    // and delete program if all blocks are deleted
     Code.workspace.addChangeListener(onWorkspaceCleared);
 
+    // don't allow orphaned stacks
+    Code.workspace.addChangeListener(Blockly.Events.disableOrphans);
+    
     button_set_state(true, true);
     display_state(MSG['stateDisconnected']);
 
@@ -477,7 +522,8 @@ function ws_start(initial) {
         // retry if we never were successfully connected
         if(!Code.connected) {
             //try to reconnect in 10ms
-	    if(!initial) setTimeout(function(){ ws_start(false) }, 10);
+	    if(!initial) setTimeout(function(){ ws_start(false) }, 100);
+	    // setTimeout(function(){ ws_start(false) }, 100);
         } else {
 	    // connection lost
             display_state(MSG['stateDisconnected']);
@@ -501,12 +547,17 @@ function program_load(name) {
     http.setRequestHeader("Content-type", "application/xml");
     http.onreadystatechange = function() {
         if (http.readyState == XMLHttpRequest.DONE) {
+	    // clearing the workspace should not trigger any "really delete?"
+	    // request 
+	    Blockly.Events.disable();
 	    Code.workspace.clear();
+	    Blockly.Events.enable();
 
             if (http.status == 200) {
 		var min_x = Number.POSITIVE_INFINITY;
 		var min_y = Number.POSITIVE_INFINITY;
 
+		var start_found = false;
 		var xml = Blockly.Xml.textToDom(http.responseText);
 
 		// try to find settings in dom
@@ -524,6 +575,10 @@ function program_load(name) {
 		    // change the origin of the root blocks
 		    // find the minimum x and y coordinates used
 		    if (name == 'block') {
+			// does this program already have a "start" block?
+			if(xmlChild.getAttribute('type') == "start")
+			    start_found = true;
+			
 			if(min_x > parseInt(xmlChild.getAttribute('x')))  
 			    min_x = parseInt(xmlChild.getAttribute('x'));
 			if(min_y > parseInt(xmlChild.getAttribute('y')))
@@ -537,15 +592,60 @@ function program_load(name) {
 		    var name = xmlChild.nodeName.toLowerCase();
 		    if (name == 'block') {
 			xmlChild.setAttribute('x', parseInt(xmlChild.getAttribute('x')) - min_x + 10);
-			xmlChild.setAttribute('y', parseInt(xmlChild.getAttribute('y')) - min_y + 10);
+			xmlChild.setAttribute('y', parseInt(xmlChild.getAttribute('y')) - min_y + 20);
 		    }
 		}
 
-		Blockly.Xml.domToWorkspace(xml, Code.workspace);
+		// --- make sure there's a start element as introduced with version 1.19 ---
+		if(!start_found) {
+		    // once more walk over all root nodes
+		    for (var i = 0; i < xml.childNodes.length; i++) {
+			var xmlChild = xml.childNodes[i];
+			var name = xmlChild.nodeName.toLowerCase();
 
-		// center if scrolling is enabled
-		Code.workspace.scrollCenter();
-            }
+			if (name == 'block') {
+			    // get type. The types of procedures all begin with procedures_
+			    type = xmlChild.getAttribute('type').split('_')[0];
+			    if(type != "procedures") {
+				// insert a start block
+				var start_block = goog.dom.createDom('block');
+				start_block.setAttribute('type', 'start');
+				start_block.setAttribute('id', Blockly.utils.genUid());
+
+				// use position of block we are going to "swallow"
+				start_block.setAttribute('x', xmlChild.getAttribute('x'));
+				start_block.setAttribute('y', xmlChild.getAttribute('y'));
+				
+				xml.appendChild(start_block);
+
+				// remove old block from root
+				xml.removeChild(xmlChild);
+				// remove old blocks coordinates 
+				xmlChild.removeAttribute('x');
+				xmlChild.removeAttribute('y');
+				
+				// create a new next block
+				var next = goog.dom.createDom('next');
+				start_block.appendChild(next);
+
+				// and append it to the next element of the new start block
+				next.appendChild(xmlChild);
+
+				break;
+			    }
+			}
+		    }
+		}
+		
+		Blockly.Xml.domToWorkspace(xml, Code.workspace);
+            } else {
+		// could not load program. Make sure the
+		// default start block is there
+		workspace_start();
+	    }
+
+	    // center if scrolling is enabled
+	    Code.workspace.scrollCenter();
         }
     }
     http.send();
@@ -554,8 +654,10 @@ function program_load(name) {
 /* ------------------------- busy spinner of top of the text window --------------------------*/
 /* the spinner is shown when the app is being launched as this takes some time */
 function spinner_start() {
-    var objDiv = document.getElementById("textArea");
-    Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
+    if(!Code.spinner) {
+	var objDiv = document.getElementById("textArea");
+	Code.spinner = new Spinner({top:"0%", position:"relative", color: '#fff'}).spin(objDiv)
+    }
 }
 
 function spinner_stop() {

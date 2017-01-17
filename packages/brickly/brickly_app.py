@@ -14,7 +14,7 @@ MAX_HIGHLIGHTS_PER_SEC = 25
 
 import time, sys, asyncio, websockets, queue, pty, json, math, re
 import xml.etree.ElementTree
-import ftrobopy_custom
+import ftrobopy
 
 # the websocket server is a seperate tread for handling the websocket
 class WebsocketServerThread(QThread):
@@ -23,7 +23,7 @@ class WebsocketServerThread(QThread):
     python_code = pyqtSignal(str)
     blockly_code = pyqtSignal(str)
     program_name = pyqtSignal(list)
-    client_connected = pyqtSignal()
+    client_connected = pyqtSignal(bool)
     speed_changed = pyqtSignal(int)
     
     def __init__(self): 
@@ -54,14 +54,16 @@ class WebsocketServerThread(QThread):
 
         self.websocket = websocket
 
-        self.client_connected.emit()
+        self.client_connected.emit(True)
 
         # run while client is connected
         while(websocket.open):
             try:
+                # receive json encoded commands via websocket
                 msg_str = yield from websocket.recv()
                 msg = json.loads(msg_str)
 
+                # emit pyqt signals for any valid request
                 if 'speed' in msg:
                     self.speed_changed.emit(int(msg['speed']))
                 if 'lang' in msg:
@@ -84,6 +86,7 @@ class WebsocketServerThread(QThread):
                 pass
             
         # the websocket is no more ....
+        self.client_connected.emit(False)
         self.websocket = None
 
     # send a message to the connected client
@@ -141,7 +144,9 @@ class RunThread(QThread):
 
         # connect to TXT
         try:
-            self.txt = ftrobopy_custom.ftrobopy_custom()
+            txt_ip = os.environ.get('TXT_IP')
+            if not txt_ip: txt_ip = "localhost"
+            self.txt = ftrobopy.ftrobopy(txt_ip, 65000)
         except:
             self.txt = None
 
@@ -162,14 +167,16 @@ class RunThread(QThread):
                 
         self.motor = [ None, None, None, None ]
 
-        # redirect stdout, stderr and highlight info to websocket server.
+        # redirect stdout, stderr info to websocket server.
         # redirect stdout also to the local screen
         sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
         sys.stderr = io_sink("stderr", self.ws_thread, None)
-        self.highlight  = io_sink("highlight", self.ws_thread, None)
 
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
+
+    def send_highlight(self, id):
+        self.ws_thread.send(json.dumps( { "highlight": id } ))
 
     def set_program_name(self, name):
         self.program_name = name
@@ -213,23 +220,29 @@ class RunThread(QThread):
                 except SyntaxError as e:
                     print("Syntax error: " + str(e), file=sys.stderr)
                 except UserInterrupt as e:
-                    self.highlight.write("interrupted")
+                    self.send_highlight("interrupted")
                 except:
                     print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
 
             self.done.emit()
-            self.highlight.write("none")
+            self.send_highlight("none")
 
             # shut down all outputs
             if self.txt:
                 for i in range(4):
                     # switch motors off
                     if self.M[i] == self.txt.C_MOTOR:
+                        # print("stop motor")
                         self.motor[i].stop()
+                        self.M[i] = self.txt.C_OUTPUT
+                        self.motor[i] = None
                     # turn outputs off
                     if self.M[i] == self.txt.C_OUTPUT:
                         self.txt.setPwm(2*i,  0)
                         self.txt.setPwm(2*i+1,0)
+
+                self.txt.setConfig(self.M, self.I)
+                self.txt.updateConfig()
                 
     def stop(self):
         self.stop_requested = True
@@ -290,6 +303,7 @@ class RunThread(QThread):
                 self.txt.setConfig(self.M, self.I)
                 self.txt.updateConfig()
                 # generate a motor object
+                # print("new motor", port)
                 self.motor[port] = self.txt.motor(port+1)
                 
             if steps:
@@ -317,6 +331,7 @@ class RunThread(QThread):
             if self.M[port] != self.txt.C_MOTOR:
                 return True
 
+        # print("M", port, self.motor[port], self.motor[port].finished())
         return self.motor[port].finished()
 
     def setOutput(self,port=0,val=0):
@@ -407,25 +422,60 @@ class RunThread(QThread):
             self.last = now
 
             time.sleep((100-self.speed)/100)
-            self.highlight.write(str)
-            
+            self.send_highlight(str)
+
+class ProgramListWidget(QListWidget):
+    selected = pyqtSignal(list)
+    
+    def __init__(self, files, current, parent=None):
+        super(ProgramListWidget, self).__init__(parent)
+        self.current = current
+        
+        self.setUniformItemSizes(True)
+        self.setViewMode(QListView.ListMode)
+        self.setMovement(QListView.Static)
+
+        # react on clicks
+        self.itemClicked.connect(self.onItemClicked)
+
+        selected = None
+        for f in files:
+            item = QListWidgetItem(self.htmlDecode(f[1]))
+            item.setData(Qt.UserRole, f)
+            if(f[0] == current[0]): selected = item
+            self.addItem(item);
+
+        # highlight current program
+        self.setCurrentItem(selected)
+
+    def htmlDecode(self, str):
+        return str.replace("&quot;/", '"').replace("&#39;", "'").replace("&lt;", '<').replace("&gt;", '>').replace("&amp;", '&');
+    
+    def onItemClicked(self, item):
+        prg = item.data(Qt.UserRole)
+        if(prg[0] != self.current[0]):
+            self.selected.emit(prg)
+
+class SelectionDialog(TouchDialog):
+    selection_changed = pyqtSignal(list)
+
+    def __init__(self, files, current, parent):
+        TouchDialog.__init__(self, QCoreApplication.translate("Selection", "Program"), parent)
+        self.vbox = QVBoxLayout()
+
+        self.prglist = ProgramListWidget(files, current, self)
+        self.prglist.selected.connect(self.on_selection_changed);
+        self.vbox.addWidget(self.prglist)
+
+        self.centralWidget.setLayout(self.vbox)
+
+    def on_selection_changed(self, prg):
+        self.selection_changed.emit(prg)
+        self.close()
+        
 class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
-
-        ## TODO: remove this
-        # move user programs from old to new place
-        src_path = os.path.dirname(os.path.realpath(__file__))
-        dst_path = os.path.join(src_path, USER_PROGRAMS)
-        files = [f for f in os.listdir(src_path) if re.match(r'^brickly-[0-9]*\.xml$', f)]
-        files = files + ([f for f in os.listdir(src_path) if re.match(r'^brickly-[0-9]*\.py$', f)])
-        for i in files:
-            print(os.path.join(src_path, i), os.path.join(dst_path, i))
-            #os.rename(os.path.join(src_path, i), os.path.join(dst_path, i))
-
-        # default settings that may later be overwritten by browser
-        self.settings = { }
-        self.program_name = [ "brickly-0.xml", "brickly" ]
 
         translator = QTranslator()
         path = os.path.dirname(os.path.realpath(__file__))
@@ -437,21 +487,29 @@ class Application(TouchApplication):
         self.ws.start()
         self.ws.command.connect(self.on_command)
         self.ws.setting.connect(self.on_setting)
-        self.ws.client_connected.connect(self.on_client_connect)
+        self.ws.client_connected.connect(self.on_client_connected)
         self.ws.python_code.connect(self.on_python_code)        # received python code
         self.ws.blockly_code.connect(self.on_blockly_code)      # received blockly code
         self.ws.program_name.connect(self.on_program_name)
 
         # create the empty main window
-        w = TouchWindow("Brickly")
+        self.w = TouchWindow("Brickly")
 
-        menu = w.addMenu()
-        self.menu_run = menu.addAction(QCoreApplication.translate("Menu","Run..."))
+        # default settings that may later be overwritten by browser
+        self.settings = { }
+        self.program_name = [ "brickly-0.xml", "Brickly" ]
+        self.load_settings_js()
+
+        # create the main menu
+        menu = self.w.addMenu()
+        self.menu_run = menu.addAction(QCoreApplication.translate("Menu","Run"))
         self.menu_run.triggered.connect(self.on_menu_run)
+        self.menu_select = menu.addAction(QCoreApplication.translate("Menu","Select..."))
+        self.menu_select.triggered.connect(self.on_menu_select)
 
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
-        w.setCentralWidget(self.txt)
+        self.w.setCentralWidget(self.txt)
 
         # a timer to read the ui output queue and to update
         # the screen
@@ -469,11 +527,13 @@ class Application(TouchApplication):
         path = os.path.dirname(os.path.realpath(__file__))
         launch_fname = os.path.join(path, "brickly.launch")
         if os.path.isfile(launch_fname):
+            # in "online" mode simply remove the launch flag, but don't
+            # run the program immediately
             os.remove(launch_fname)
         else:
             self.program_run()
   
-        w.show()
+        self.w.show()
         self.exec_()        
 
         self.ws.stop()
@@ -490,9 +550,13 @@ class Application(TouchApplication):
             f.write(data)
             f.close()
 
-    def on_client_connect(self):
-        # tell browser whether code is being executed
-        self.ws.send(json.dumps( { "running": not self.thread.isFinished() } ))
+    def on_client_connected(self, connected):
+        # on connection tell browser whether code is being executed
+        if connected:
+            self.ws.send(json.dumps( { "running": not self.thread.isFinished() } ))
+
+        # disable local program selection while connected
+        self.menu_select.setEnabled(not connected);
 
     def on_python_code(self, str):
         # store python code under same name as blockly code. But use py extension
@@ -501,8 +565,9 @@ class Application(TouchApplication):
         
     def on_blockly_code(self, str):
         self.write_to_file(self.program_name[0], str)
-     
+
     def on_setting(self, setting):
+        # received settings from web browser
         for i in setting.keys():
             self.settings[i] = setting[i]
 
@@ -512,7 +577,7 @@ class Application(TouchApplication):
         if str == "stop": self.thread.stop()
         if str == "delete": self.program_delete()
         if str == "save_settings": self.save_settings()
-        if str == "list_program_files": self.list_programs()
+        if str == "list_program_files": self.cmd_list_programs()
 
     def save_settings(self):
         # save current settings
@@ -536,7 +601,7 @@ class Application(TouchApplication):
         self.txt.insertPlainText(str)
 
     def on_program_ended(self):
-        self.menu_run.setText(QCoreApplication.translate("Menu","Run..."))
+        self.menu_run.setText(QCoreApplication.translate("Menu","Run"))
         
     def program_delete(self):
         # delete the blockly xml file ...
@@ -545,7 +610,7 @@ class Application(TouchApplication):
         self.delete_file(os.path.splitext(self.program_name[0])[0] + ".py")
 
     def program_run(self):
-        # change "Run..." to "Stop!"
+        # change "Run" to "Stop!"
         self.menu_run.setText(QCoreApplication.translate("Menu","Stop!"))
         
         # clear screen
@@ -572,24 +637,47 @@ class Application(TouchApplication):
         else:
             self.program_run()
 
-    def list_programs(self):
-        # the browser client has requested a list of all files
+    def on_menu_select(self):
+        program_files = self.get_program_list()
+        
+        dialog = SelectionDialog(program_files, self.program_name, self.w)
+        dialog.selection_changed.connect(self.on_program_changed)
+        dialog.exec_()
 
-        # search for all brickly programs in current dir and return 
-        # their file names and program names
+    def set_program(self, prg):
+        self.program_name = prg
+        self.w.titlebar.setText(prg[1])
+        
+    def on_program_changed(self, prg):
+        self.set_program(prg)
+        self.txt.clear()
+        self.program_run()
+        
+    def get_program_list(self):
+        # search for all brickly programs in current user dir and return 
+        # their file names and the embedded program names
         program_files = []
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)), USER_PROGRAMS)
         files = [f for f in os.listdir(path) if re.match(r'^brickly-[0-9]*\.xml$', f)]
         for f in files:
+            # use file name as program name as default ...
             name = os.path.splitext(f)[0]
-            # try to extract the program name
+            
+            # ... but then try to extract the program name from the xml
             root = xml.etree.ElementTree.parse(os.path.join(path, f)).getroot()
             for child in root:
                 # remove any namespace from the tag
                 if '}' in child.tag: child.tag = child.tag.split('}', 1)[1]
                 if child.tag == "settings" and 'name' in child.attrib:
                     name = child.attrib['name']
-            program_files.append( (f, name) )
+                    
+            program_files.append( [f, name] )
+
+        return program_files;
+
+    def cmd_list_programs(self):
+        # the browser client has requested a list of all user program files
+        program_files = self.get_program_list()
 
         # send whole list of files as json
         self.ws.send(json.dumps( { "program_files": program_files } ))
@@ -597,11 +685,37 @@ class Application(TouchApplication):
     def on_program_name(self, x):
         # x[0] is the file name
         # x[1] is the internal program name
-        self.program_name = x
+        self.set_program(x)
+        self.txt.clear()
         
         # also store the current program name in the settings
-        self.on_setting( { "program_file_name": x[0] } );
-        self.on_setting( { "program_name": x[1] } );
+        self.on_setting( { "program_file_name": x[0], "program_name": x[1] } );
 
+        # load the javascript settings file to be able to use it's contents
+        # in stand-alone mode as well. Especially the name of the current
+        # program 
+    def load_settings_js(self):
+        fname = os.path.join(os.path.dirname(os.path.realpath(__file__)), USER_PROGRAMS, "settings.js")
+        if os.path.isfile(fname):
+            # load and execute locally stored blockly code
+            with open(fname, encoding="UTF-8") as f:
+                for l in f:
+                    parts = l.split('=')
+                    name = parts[0].strip().split()[1];
+                    value = parts[1].strip().rstrip('; ').strip('"\'');
+
+                    # we are interested in the 'program_file_name' only
+                    if(name == "program_file_name"):
+                        self.program_name[0] = value;
+                    if(name == "program_name"):
+                        self.program_name[1] = value;
+                    if(name == "skill"):
+                        self.settings['skill'] = int(value)
+                    if(name == "lang"):
+                        self.settings['lang'] = value
+
+        # make sure window title gets updated
+        self.set_program(self.program_name)
+        
 if __name__ == "__main__":
     Application(sys.argv)
