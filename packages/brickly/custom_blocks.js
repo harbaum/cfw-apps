@@ -4,6 +4,8 @@
 CustomBlocksHUE = 180
 InputBlocksHUE = 200
 OutputBlocksHUE = 220
+MobileBlocksHUE = 250
+TextBlocksHUE = 350
 
 var block_wait = {
     "type": "wait",
@@ -88,6 +90,129 @@ var block_output = {
   "tooltip": MSG['blockOutputToolTip']
 }
 
+var block_io_sync = {
+    "type": "io_sync",
+    "message0": MSG['blockIOSyncMessage'],
+    "args0": [ {
+	"type": "input_dummy"
+    },{
+	"type": "input_statement",
+	"name": "STATEMENTS"
+    } ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": OutputBlocksHUE,
+    "tooltip": MSG['blockIOSyncToolTip']
+};
+
+var block_mobile_config = {
+    "type": "mobile_config",
+    "message0": MSG['blockMobileConfigMessage'],
+    "args0": [ 
+	{ "type": "input_dummy" },
+	{ "type": "field_dropdown",
+	  "name": "motor_left",
+	  "options": [ [ "M1", "0" ], [ "M2", "1" ], [ "M3", "2" ], [ "M4", "3" ] ] },
+	{ "type": "field_dropdown",
+	  "name": "motor_right",
+	  "options": [ [ "M1", "0" ], [ "M2", "1" ], [ "M3", "2" ], [ "M4", "3" ] ] },
+	{ "type": "input_value",
+	  "name": "motor_type",
+	  "check": "Number" },
+	{ "type": "field_number",
+	  "name": "gear_ratio_1",
+	  "value": 10,
+	  "min": 1 },
+	{ "type": "field_number",
+	  "name": "gear_ratio_2",
+	  "value": 20,
+	  "min": 1 },
+	{ "type": "input_dummy"	},
+	{ "type": "field_number",
+	  "name": "wheel_diam",
+	  "value": 5.8,
+	  "min": 1 },
+	{ "type": "input_dummy" },
+	{ "type": "field_number",
+	  "name": "wheel_dist",
+	  "value": 15.4,
+	  "min": 1
+	}
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": MobileBlocksHUE,
+    "tooltip": MSG['blockMobileConfigToolTip']
+}
+
+var block_mobile_drive = {
+    "type": "mobile_drive",
+    "message0": MSG['blockMobileDriveMessage'],
+    "args0": [ {
+	"type": "field_dropdown",
+	"name": "dir",
+	"options": [ [ MSG['blockForward'], "1" ],
+		     [ MSG['blockBackward'], "-1" ] ] 
+    }, {
+	"type": "input_value",
+	"name": "dist",
+	"check": "Number"
+    } ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": MobileBlocksHUE,
+    "tooltip": MSG['blockMobileDriveToolTip']
+}
+
+var block_mobile_turn = {
+    "type": "mobile_turn",
+    "message0": MSG['blockMobileTurnMessage'],
+    "args0": [ {
+	"type": "field_dropdown",
+	"name": "dir",
+	"options": [ [ MSG['blockRight'], "1" ],
+		     [ MSG['blockLeft'], "-1" ] ] 
+    }, {
+	"type": "input_value",
+	"name": "angle",
+	"check": "Number"
+    } ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": MobileBlocksHUE,
+    "tooltip": MSG['blockMobileTurnToolTip']
+}
+
+var block_simple_angle = {
+  "type": "simple_angle",
+  "message0": MSG['blockAngleMessage'],
+  "args0": [ { 
+      "type": "field_dropdown",
+      "name": "angle", 
+      "options": [ [ MSG['blockRot45'],  "45" ],
+		   [ MSG['blockRot90'],  "90" ],
+		   [ MSG['blockRot135'], "135" ],
+		   [ MSG['blockRot180'], "180" ] ]
+    } ],
+  "output": "Number",
+  "colour": MobileBlocksHUE,
+  "tooltip": MSG['blockAngleToolTip']
+};
+
+var block_angle = {
+  "type": "angle",
+  "message0": MSG['blockAngleMessage']+"°",
+  "args0": [ { 
+      "type": "field_angle",
+      "name": "angle",
+      "angle": 90
+    } ],
+  "output": "Number",
+  "colour": MobileBlocksHUE,
+  "tooltip": MSG['blockAngleToolTip']
+};
+
+// old motor block
 var block_motor = {
   "type": "motor",
   "message0": MSG['blockMotorMessage'],
@@ -114,6 +239,7 @@ var block_motor = {
   "tooltip": MSG['blockMotorToolTip']
 }
 
+// old motor block with distance
 var block_motor_steps = {
     "type": "motor_steps",
     "message0": MSG['blockMotorStepsMessage'],
@@ -142,6 +268,81 @@ var block_motor_steps = {
     "colour": OutputBlocksHUE,
     "tooltip": MSG['blockMotorStepsToolTip']
 }
+
+var block_motor_set = {
+  "type": "motor_set",
+  "message0": MSG['blockMotorSetMessage'],
+  "args0": [ {
+      "type": "field_dropdown",
+      "name": "port",
+      "options": [ [ "M1", "0" ], [ "M2", "1" ], [ "M3", "2" ], [ "M4", "3" ] ]
+    }, {
+  	"type": "field_dropdown",
+	"name": "name",
+	"options": [
+	    [ MSG['blockMotorSetSpeed'], "speed" ],
+	    [ MSG['blockMotorSetDir'],   "dir"   ],
+	    [ MSG['blockMotorSetDist'],  "dist"  ],
+	    [ MSG['blockMotorSetGear'],  "gear"  ]
+	]
+  }, {
+      "type": "input_value",
+      "name": "value",
+      "check": "Number"
+  }
+  ],
+  "previousStatement": null,
+  "nextStatement": null,
+  "colour": OutputBlocksHUE,
+  "tooltip": MSG['blockMotorSetToolTip']
+}
+
+var block_motor_sync = {
+  "type": "motor_sync",
+  "message0": MSG['blockMotorSyncMessage'],
+  "args0": [ {
+      "type": "field_dropdown",
+      "name": "port_a",
+      "options": [ [ "M1", "0" ], [ "M2", "1" ], [ "M3", "2" ], [ "M4", "3" ] ]
+    }, {
+      "type": "field_dropdown",
+      "name": "port_b",
+      "options": [ [ "M1", "0" ], [ "M2", "1" ], [ "M3", "2" ], [ "M4", "3" ] ]
+    },
+  ],
+  "previousStatement": null,
+  "nextStatement": null,
+  "colour": OutputBlocksHUE,
+  "tooltip": MSG['blockMotorSyncToolTip']
+}
+
+var block_left_right = {
+  "type": "left_right",
+  "message0": MSG['blockLeftRightMessage'],
+  "args0": [ { 
+      "type": "field_dropdown",
+      "name": "dir", 
+      "options": [ [ MSG['blockLeft']  + ' \u21BA', "-1" ],
+		   [ MSG['blockRight'] + ' \u21BB',  "1" ] ]
+    } ],
+  "output": "Number",
+  "colour": OutputBlocksHUE,
+  "tooltip": MSG['blockLeftRightToolTip']
+};
+
+var block_gear_ratio = {
+  "type": "gear_ratio",
+  "message0": MSG['blockGearMessage'],
+  "args0": [ { 
+      "type": "field_dropdown",
+      "name": "gear_ratio", 
+      "options": [ [ MSG['blockGearTXT'], "63" ],
+		   [ MSG['blockGearTX'],  "75" ] ]
+    } ],
+  "output": "Number",
+  "colour": OutputBlocksHUE,
+  "tooltip": MSG['blockGearToolTip']
+};
 
 var block_motor_has_stopped = {
     "type": "motor_has_stopped",
@@ -303,6 +504,31 @@ var block_sound = {
   "tooltip": MSG['blockSoundToolTip']
 };
 
+// custom text related blocks
+var block_text_print_color = {
+    "type": "text_set_color",
+    "message0": MSG['blockTextPrintColorMessage'],
+    "args0": [ { "type": "field_colour", "name": "color",
+		 "colour": "#ffff00" }, 
+	       {
+		   "type": "input_value",
+		   "name": "str" } ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": TextBlocksHUE,
+    "tooltip": MSG['blockTextPrintColorToolTip']
+}
+
+var block_text_clear = {
+    "type": "text_clear",
+    "message0": MSG['blockTextEraseMessage'],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": TextBlocksHUE,
+    "tooltip": MSG['blockTextEraseToolTip']
+}
+
+
 // generate python code for custom blocks
 Blockly.Python['start'] = function(block) {
   var code = '# program start\n';
@@ -317,11 +543,47 @@ Blockly.Python['wait'] = function(block) {
 
 Blockly.Python['repeat'] = function(block) {
     var statements = Blockly.Python.statementToCode(block, 'STATEMENTS');
-    // TODO: Assemble Python into code variable.
     var code = 'while True:\n' + statements;
     return code;
 }
-    
+
+Blockly.Python['io_sync'] = function(block) {
+    var statements = Blockly.Python.statementToCode(block, 'STATEMENTS');
+    var code = 'sync(True)\nif True:\n' + statements + "sync(False)\n";
+    return code;
+}
+
+Blockly.Python['mobile_config'] = function(block) {
+    var motors = [ block.getFieldValue('motor_left'), block.getFieldValue('motor_right') ];
+    var motor_type = Blockly.Python.valueToCode(block, 'motor_type', Blockly.Python.ORDER_ATOMIC);
+    var gear = block.getFieldValue('gear_ratio_1') / block.getFieldValue('gear_ratio_2');
+    var wheels = [ block.getFieldValue('wheel_diam'), block.getFieldValue('wheel_dist') ];
+    return 'mobileConfig([%1], %2, %3, [%4])\n'.replace('%1', motors).replace('%2', motor_type)
+	.replace('%3', gear).replace('%4', wheels);
+}
+
+Blockly.Python['mobile_drive'] = function(block) {
+    var dir = block.getFieldValue('dir');
+    var dist = Blockly.Python.valueToCode(block, 'dist', Blockly.Python.ORDER_ATOMIC);
+    return 'mobileDrive(%1, %2)\n'.replace('%1', dir).replace('%2', dist);
+}
+
+Blockly.Python['mobile_turn'] = function(block) {
+    var dir = block.getFieldValue('dir');
+    var angle = Blockly.Python.valueToCode(block, 'angle', Blockly.Python.ORDER_ATOMIC);
+    return 'mobileTurn(%1, %2)\n'.replace('%1', dir).replace('%2', angle);
+}
+
+Blockly.Python['simple_angle'] = function(block) {
+    var angle = block.getFieldValue('angle');
+    return [angle, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['angle'] = function(block) {
+    var angle = block.getFieldValue('angle');
+    return [angle, Blockly.Python.ORDER_NONE];
+};
+
 Blockly.Python['pwm_value'] = function(block) {
     var state = block.getFieldValue('state');
     return [state, Blockly.Python.ORDER_NONE];
@@ -332,17 +594,40 @@ Blockly.Python['on_off'] = function(block) {
     return [state, Blockly.Python.ORDER_NONE];
 };
 
+Blockly.Python['left_right'] = function(block) {
+    var dir = block.getFieldValue('dir');
+    return [dir, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['gear_ratio'] = function(block) {
+    var impulses = block.getFieldValue('gear_ratio');
+    return [impulses, Blockly.Python.ORDER_NONE];
+};
+
 Blockly.Python['output'] = function(block) {
     var port = block.getFieldValue('port');
     var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
     return 'setOutput(%1, %2)\n'.replace('%1', port).replace('%2', value);
 }
 
+Blockly.Python['motor_set'] = function(block) {
+    var port = block.getFieldValue('port');
+    var name = block.getFieldValue('name');
+    var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
+    return 'setMotor(%1, \'%2\', %3)\n'.replace('%1', port).replace('%2', name).replace('%3', value);
+}
+
+Blockly.Python['motor_sync'] = function(block) {
+    var port_a = block.getFieldValue('port_a');
+    var port_b = block.getFieldValue('port_b');
+    return 'setMotorSync(%1, %2)\n'.replace('%1', port_a).replace('%2', port_b);
+}
+
 Blockly.Python['motor'] = function(block) {
     var port = block.getFieldValue('port');
     var dir = block.getFieldValue('dir');
     var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
-    return 'setMotor(%1, %2, %3)\n'.replace('%1', port).replace('%2', dir).replace('%3', value);
+    return 'setMotorOld(%1, %2, %3)\n'.replace('%1', port).replace('%2', dir).replace('%3', value);
 }
 
 Blockly.Python['motor_steps'] = function(block) {
@@ -350,12 +635,12 @@ Blockly.Python['motor_steps'] = function(block) {
     var dir = block.getFieldValue('dir');
     var value = Blockly.Python.valueToCode(block, 'value', Blockly.Python.ORDER_ATOMIC);
     var steps = Blockly.Python.valueToCode(block, 'steps', Blockly.Python.ORDER_ATOMIC);
-    return 'setMotor(%1, %2, %3, %4)\n'.replace('%1', port).replace('%2', dir).replace('%3', value).replace('%4', steps);
+    return 'setMotorOld(%1, %2, %3, %4)\n'.replace('%1', port).replace('%2', dir).replace('%3', value).replace('%4', steps);
 };
 
 Blockly.Python['motor_has_stopped'] = function(block) {
     var port = block.getFieldValue('port');
-    return ['motorHasStopped(%1)\n'.replace('%1', port), Blockly.Python.ORDER_NONE];
+    return ['motorHasStopped(%1)'.replace('%1', port), Blockly.Python.ORDER_NONE];
 };
 
 Blockly.Python['motor_off'] = function(block) {
@@ -393,6 +678,16 @@ Blockly.Python['sound'] = function(block) {
     return [index, Blockly.Python.ORDER_NONE];
 }
 
+Blockly.Python['text_clear'] = function(block) {
+    return 'textClear()\n';
+}
+
+Blockly.Python['text_print_color'] = function(block) {
+    var col = block.getFieldValue('color');
+    var str = Blockly.Python.valueToCode(block, 'str', Blockly.Python.ORDER_ATOMIC);
+    return 'textPrintColor(\'%1\',%2)\n'.replace('%1', col).replace('%2', str);
+}
+
 function custom_blocks_init() {
     // make custom blocks known to blockly
 
@@ -417,6 +712,22 @@ function custom_blocks_init() {
 	init: function() { this.jsonInit(block_repeat); } };
     Blockly.Blocks['output'] = {
 	init: function() { this.jsonInit(block_output); } };
+    Blockly.Blocks['io_sync'] = {
+	init: function() { this.jsonInit(block_io_sync); } };
+    Blockly.Blocks['mobile_config'] = {
+	init: function() { this.jsonInit(block_mobile_config); } };
+    Blockly.Blocks['mobile_drive'] = {
+	init: function() { this.jsonInit(block_mobile_drive); } };
+    Blockly.Blocks['mobile_turn'] = {
+	init: function() { this.jsonInit(block_mobile_turn); } };
+    Blockly.Blocks['simple_angle'] = {
+	init: function() { this.jsonInit(block_simple_angle); } };
+    Blockly.Blocks['angle'] = {
+	init: function() { this.jsonInit(block_angle); } };
+    Blockly.Blocks['motor_set'] = {
+	init: function() { this.jsonInit(block_motor_set); } };
+    Blockly.Blocks['motor_sync'] = {
+	init: function() { this.jsonInit(block_motor_sync); } };
     Blockly.Blocks['motor'] = {
 	init: function() { this.jsonInit(block_motor); } };
     Blockly.Blocks['motor_steps'] = {
@@ -435,9 +746,17 @@ function custom_blocks_init() {
 	init: function() { this.jsonInit(block_pwm_value); } };
     Blockly.Blocks['on_off'] = {
 	init: function() { this.jsonInit(block_on_off); } };
+    Blockly.Blocks['left_right'] = {
+	init: function() { this.jsonInit(block_left_right); } };
+    Blockly.Blocks['gear_ratio'] = {
+	init: function() { this.jsonInit(block_gear_ratio); } };
     Blockly.Blocks['play_snd'] = {
 	init: function() { this.jsonInit(block_play_snd); } };
     Blockly.Blocks['sound'] = {
 	init: function() { this.jsonInit(block_sound); } };
+    Blockly.Blocks['text_clear'] = {
+	init: function() { this.jsonInit(block_text_clear); } };
+    Blockly.Blocks['text_print_color'] = {
+	init: function() { this.jsonInit(block_text_print_color); } };
 }
 

@@ -20,11 +20,42 @@
     <block type="output"></block>
     <block type="on_off"></block>
     <block type="pwm_value"></block>
+    <block type="io_sync"></block>
     <category name="{catMotors}" colour="220">
-      <block type="motor"></block>
+      <block type="motor_set"></block>
+      <block type="left_right"></block>
+      <block type="gear_ratio"></block>
+      <block type="pwm_value"></block>
       <block type="motor_off"></block>
-      <block type="motor_steps"></block>
       <block type="motor_has_stopped"></block>
+      <block type="motor_sync">
+	<field name="port_b">1</field>
+      </block>
+    </category>
+    <category name="{catMobile}" colour="250">
+      <block type="mobile_drive">
+	<value name="dist">
+	  <shadow type="math_number">
+            <field name="NUM">25</field>
+	  </shadow>
+	</value>
+      </block>
+      <block type="mobile_turn">
+	<value name="angle">
+	  <shadow type="angle">
+            <field name="angle">0</field>
+	  </shadow>
+	</value>
+      </block>
+      <block type="angle"></block>
+      <block type="simple_angle"></block>
+      <block type="mobile_config">
+	<field name="motor_right">1</field>
+	<value name="motor_type">
+	  <shadow type="gear_ratio">
+	  </shadow>
+	</value>
+      </block>
     </category>
   </category>
   <category name="{catLogic}" colour="43">
@@ -154,6 +185,21 @@
     <block type="math_random_float"></block>
   </category>
   <category name="{catText}" colour="350">
+    <block type="text_clear"></block>
+    <block type="text_print">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">abc</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="text_print_color">
+      <value name="str">
+        <shadow type="text">
+          <field name="TEXT">abc</field>
+        </shadow>
+      </value>
+    </block>
     <block type="text"></block>
     <block type="text_join"></block>
     <block type="text_append">
@@ -213,13 +259,6 @@
         <shadow type="text">
           <field name="TEXT">abc</field>
           </shadow>
-      </value>
-    </block>
-    <block type="text_print">
-      <value name="TEXT">
-        <shadow type="text">
-          <field name="TEXT">abc</field>
-        </shadow>
       </value>
     </block>
   </category>

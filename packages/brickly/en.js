@@ -36,9 +36,28 @@ var MSG = {
     blockOnOffMessage: "%1",
     blockOnOffToolTip: "On/off output state",
     
+    blockMobileDriveMessage: "drive %1 %2 cm",
+    blockForward: "forward",
+    blockBackward: "backward",
+    blockMobileDriveToolTip: "Drive a straight line",
+    blockMobileTurnMessage: "turn %1 %2",
+    blockMobileTurnToolTip: "Turn in place",
+    blockMobileConfigMessage: "Mobile robot configuration %1 Motors %2 and %3 of type: %4 Drive gear %5 : %6 %7 Wheel diameter: %8 cm %9 Wheel distance: %10 cm",
+    blockMobileConfigToolTip: "User defined mobile robot configuration. Not needed for Discovery Set",
+
     blockOn: "on",
     blockOff: "off",
     
+    blockAngleMessage: "%1",
+    blockAngleToolTip: "Rotation value",
+    blockRot45: "a little bit",
+    blockRot90: "halfway",
+    blockRot135: "much",
+    blockRot180: "all around",
+
+    blockIOSyncMessage: "simultaneously %1 %2",
+    blockIOSyncToolTip: "Do output commands simultaneously",
+
     blockInputModeVoltage: "voltage (mV)",
     blockInputModeSwitch: "switch state",
     blockInputModeResistor: "resistance",
@@ -70,6 +89,21 @@ var MSG = {
     blockMotorStepsMessage: "start motor %1 turning %2 at %3 for %4 turns",
     blockMotorStepsToolTip: "Start a motor for a given number of turns",
 
+    blockMotorSetMessage: "set motor %1 %2 to %3",
+    blockMotorSetToolTip: "Set a motor value",
+    blockMotorSetSpeed: 'speed',
+    blockMotorSetDir: 'direction',
+    blockMotorSetDist: 'distance',
+    blockMotorSetGear: 'type',
+    blockLeftRightMessage: "%1",
+    blockLeftRightToolTip: "rotation left/right",
+    blockGearMessage: "%1",
+    blockGearToolTip: "encoder impulses per rotation",
+    blockGearTXT: "new encoder motor (TXT)",
+    blockGearTX: "old encoder motor (TX)",
+    blockMotorSyncMessage: "link motors %1 and %2",
+    blockMotorSyncToolTip: "Link two motors for synchronous operation",
+    
     blockMotorHasStoppedMessage: "motor %1 has stopped",
     blockMotorHasStoppedToolTip: "Test if a motor has stopped",
 
@@ -110,6 +144,11 @@ var MSG = {
     blockSoundRobby_3: "Robby 3",
     blockSoundRobby_4: "Robby 4",
 
+    blockTextPrintColorMessage: "print in %1 %2",
+    blockTextPrintColorToolTip: "Print the specified text in the given color",
+    blockTextEraseMessage: "erase text",
+    blockTextEraseToolTip: "Erase all text from screen",
+
     textVariable: "text",
     listVariable: "list",
 
@@ -117,6 +156,7 @@ var MSG = {
     catInputs: "Inputs",
     catOutputs: "Outputs",
     catMotors: "Motors",
+    catMobile: "Mobile",
     catLogic: "Logic",
     catLoops: "Loops",
     catMath: "Math",

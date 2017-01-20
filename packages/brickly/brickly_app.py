@@ -166,6 +166,7 @@ class RunThread(QThread):
             self.txt.updateConfig()
                 
         self.motor = [ None, None, None, None ]
+        self.mobile = None
 
         # redirect stdout, stderr info to websocket server.
         # redirect stdout also to the local screen
@@ -203,7 +204,13 @@ class RunThread(QThread):
                     code_txt = code_txt.replace("# highlightBlock(", "wrapper.highlightBlock(");
                     code_txt = code_txt.replace("setOutput(", "wrapper.setOutput(");
                     code_txt = code_txt.replace("setMotor(", "wrapper.setMotor(");
+                    code_txt = code_txt.replace("setMotorSync(", "wrapper.setMotorSync(");
+                    code_txt = code_txt.replace("setMotorOld(", "wrapper.setMotorOld(");
+                    code_txt = code_txt.replace("mobileConfig(", "wrapper.mobileConfig(");
+                    code_txt = code_txt.replace("mobileDrive(", "wrapper.mobileDrive(");
+                    code_txt = code_txt.replace("mobileTurn(", "wrapper.mobileTurn(");
                     code_txt = code_txt.replace("wait(", "wrapper.wait(");
+                    code_txt = code_txt.replace("sync(", "wrapper.sync(");
                     code_txt = code_txt.replace("print(", "wrapper.print(");
                     code_txt = code_txt.replace("str(", "wrapper.str(");
                     code_txt = code_txt.replace("setMotorOff(", "wrapper.setMotorOff(");
@@ -211,6 +218,8 @@ class RunThread(QThread):
                     code_txt = code_txt.replace("getInput(", "wrapper.getInput(");
                     code_txt = code_txt.replace("inputConvR2T(", "wrapper.inputConvR2T(");
                     code_txt = code_txt.replace("playSound(", "wrapper.playSound(");
+                    code_txt = code_txt.replace("textClear(", "wrapper.textClear(");
+                    code_txt = code_txt.replace("textPrintColor(", "wrapper.textPrintColor(");
 
                     # code = compile(code_txt, "brickly.py", 'exec')
                     # exec(code, globals())
@@ -233,7 +242,7 @@ class RunThread(QThread):
                     # switch motors off
                     if self.M[i] == self.txt.C_MOTOR:
                         # print("stop motor")
-                        self.motor[i].stop()
+                        self.motor[i]['dev'].stop()
                         self.M[i] = self.txt.C_OUTPUT
                         self.motor[i] = None
                     # turn outputs off
@@ -243,6 +252,10 @@ class RunThread(QThread):
 
                 self.txt.setConfig(self.M, self.I)
                 self.txt.updateConfig()
+
+            # forget all user setup configs
+            self.motor = [ None, None, None, None ]
+            self.mobile = None
                 
     def stop(self):
         self.stop_requested = True
@@ -284,32 +297,109 @@ class RunThread(QThread):
 
         # todo: don't call print but push data directly into queue
         print(*tuple(argsl), **kwargs)
+
+    # ================================== FT IO ================================
+
+    def sync(self, begin):
+        if self.txt:
+            if begin:
+                self.txt.SyncDataBegin();
+            else:
+                self.txt.SyncDataEnd();            
+
+    # --------------------------------- motors --------------------------------
+
+    def createMotor(self, port):
+        # check if a motor object exists and create one of not
+        if not self.motor[port]:
+            # generate a motor object
+            self.motor[port] = { }
+
+            # set defaults
+            self.motor[port]['dir'] = 1        # turning right
+            self.motor[port]['gear'] = 63      # 63 steps per turn (new encoder motors)
+            self.motor[port]['syncto'] = None  # not sync'd to any other motor
+            self.motor[port]['dev'] = None
+            
+        if self.txt and self.M[port] != self.txt.C_MOTOR:
+            # update config
+            self.M[port] = self.txt.C_MOTOR
+            self.txt.setConfig(self.M, self.I)
+            self.txt.updateConfig()
+
+            self.motor[port]['dev'] = self.txt.motor(port+1)
+
+    def setMotorSync(self, port_a=0, port_b=0):
+        if port_a == port_b: return
+
+        # TODO: check if motors are already synced
+        # to another motor
+
+        # make sure both motors exist
+        self.createMotor(port_a)
+        self.createMotor(port_b)
+        self.motor[port_a]['syncto'] = self.motor[port_b]['dev']
+        self.motor[port_b]['syncto'] = self.motor[port_a]['dev']
+
+    def setMotor(self, port=0, name=None, val=0):
+        if not name: return
+
+        # print("M"+str(port+1), name, val) 
+
+        # make sure motor object already exists
+        self.createMotor(port)
+
+        # speed and distance are directly applied, everything else
+        # is stored in the motor object
+        if(name == 'speed'):
+            # limit from -100% to +100%
+            val = max(-100, min(100, val))
+            # and scale it to 0 ... 512 range
+            pwm_val = int(5.12 * val)
+            # apply direction
+            pwm_val = self.motor[port]['dir'] * pwm_val;
+            
+            if self.txt:
+                self.motor[port]['dev'].setSpeed(pwm_val)
+
+        elif(name == 'dist'):
+            if val < 0: val = 0
+
+            if self.txt:
+                self.motor[port]['dev'].setDistance(int(self.motor[port]['gear']*val),
+                                                    self.motor[port]['syncto'])
         
-    def setMotor(self,port=0,dir=1,val=0,steps=None):
+        elif(name == 'dir'):
+            if val < 0: val = -1
+            else:       val = 1
+            self.motor[port][name] = val
+
+        elif(name == 'gear'):
+            if val < 0: val = -val
+            self.motor[port][name] = val
+
+        else:
+            print("Unknown parameter name", name, file=sys.stderr)
+
+        
+    def setMotorOld(self,port=0,dir=1,val=0,steps=None):
+        # this is for the old all-on-one motor blocks 
+
         # make sure val is in 0..100 range
         val = max(-100, min(100, val))
         # and scale it to 0 ... 512 range
         pwm_val = int(5.12 * val)
         # apply direction
-        if dir < 0: pwm_val = -pwm_val;
-        
-        if not self.txt:
-            # if no TXT could be connected just write to stderr
-            print("M" + str(port+1) + "=" + str(pwm_val), file=sys.stderr)
-        else:
-            # check if that port is in motor mode and change if not
-            if self.M[port] != self.txt.C_MOTOR:
-                self.M[port] = self.txt.C_MOTOR
-                self.txt.setConfig(self.M, self.I)
-                self.txt.updateConfig()
-                # generate a motor object
-                # print("new motor", port)
-                self.motor[port] = self.txt.motor(port+1)
+        pwm_val = dir * pwm_val;
+
+        # make sure motor object already exists
+        self.createMotor(port)
                 
+        if self.txt:
             if steps:
-                self.motor[port].setDistance(int(63*steps))
+                self.motor[port]['dev'].setDistance(int(self.motor[port]['gear']*steps))
                 
-            self.motor[port].setSpeed(pwm_val)
+            self.motor[port]['dev'].setSpeed(pwm_val)
 
             
     def setMotorOff(self,port=0):
@@ -319,20 +409,20 @@ class RunThread(QThread):
         else:
             # make sure that the port is in motor mode
             if self.M[port] == self.txt.C_MOTOR:
-                self.motor[port].stop()
+                self.motor[port]['dev'].stop()
 
     def motorHasStopped(self,port=0):
         if not self.txt:
             # if no TXT could be connected just write to stderr
             print("M" + str(port+1) + "= off?", file=sys.stderr)
             return True
-        else:
-            # make sure that the port is in motor mode
-            if self.M[port] != self.txt.C_MOTOR:
-                return True
 
-        # print("M", port, self.motor[port], self.motor[port].finished())
-        return self.motor[port].finished()
+        # make sure that the port is in motor mode
+        if self.M[port] != self.txt.C_MOTOR:
+            return True
+
+        # print("M", port, self.motor[port], self.motor[port]['dev'].finished())
+        return self.motor[port]['dev'].finished()
 
     def setOutput(self,port=0,val=0):
         # make sure val is in 0..100 range
@@ -353,6 +443,110 @@ class RunThread(QThread):
                 self.motor[int(port/2)] = None                
         
             self.txt.setPwm(port,pwm_val)
+
+    # --------------------------------- mobile robots --------------------------------
+
+    def mobileCreate(self):
+        # create a default mobil config if none exists
+        if not self.mobile:
+            # defaults are for discovery set
+            self.mobile = { }
+            self.mobile['motors'] = [ 0, 1 ]       # M1 & M2
+            self.mobile['motor_gear'] = 63         # TXT encoder motor with 63 impules per round
+            self.mobile['gear'] = 0.5              # Z10 : Z20
+            self.mobile['wheels'] = [ 5.8, 15.4 ]  # 5.8 cm wheel diameter and 15.4 cm wheel distance
+
+        # motor rotations per driven cm
+        self.mobile['cm2rot'] =  (math.pi * self.mobile['wheels'][0] * self.mobile['gear'])
+        # motor rotations per rotated deg
+        self.mobile['deg2rot'] = (self.mobile['cm2rot'] * 360 / (self.mobile['wheels'][1] * math.pi))
+
+        # make sure motor objects for both motors exist
+        self.createMotor(self.mobile['motors'][0])
+        self.createMotor(self.mobile['motors'][1])
+
+        # print("cm per rot", self.mobile['cm2rot'])
+        # print("deg per rot", self.mobile['deg2rot'])
+
+    def mobileConfig(self, motors, type, gear, wheels):
+        # print("Config:", motors, type, gear, wheels)
+
+        # create an empty config of none exists yet
+        if not self.mobile:
+            self.mobile = { }
+
+        self.mobile['motors'] = motors
+        self.mobile['motor_gear'] = type
+        self.mobile['gear'] = gear
+        self.mobile['wheels'] = wheels
+
+        # do some sanity checks to prevent divisions by zero
+
+        # motor gear must never be 0.
+        if not self.mobile['motor_gear']: self.mobile['motor_gear'] = 1
+        if not self.mobile['gear']: self.mobile['gear'] = 1
+        if not self.mobile['wheels'][0]: self.mobile['wheels'][0] = 1
+        if not self.mobile['wheels'][1]: self.mobile['wheels'][1] = 1
+
+    def mobileDrive(self, dir, dist=0):
+        # make sure mobil setup exists
+        self.mobileCreate()
+
+        if not self.txt:
+            print("Drive", dir, dist, file=sys.stderr)
+        else:
+            m0 = self.mobile['motors'][0]
+            m1 = self.mobile['motors'][1]
+
+            # mobile robot has 2:1 gear and a wheel diameter of 6cm 
+            # -> one wheel rotation == 10cm -> gear/10 impulses per cm
+            dist = int(dist * self.mobile['motor_gear'] / self.mobile['cm2rot'])
+            speed = 512                # full throttle forward
+            if dir < 0: speed = -512   # full throttle backward
+
+            # run both motors synchronous in the same direction at the same speed
+            self.txt.SyncDataBegin()
+            self.motor[m0]['dev'].setDistance(dist, self.motor[m1]['dev'])
+            self.motor[m1]['dev'].setDistance(dist, self.motor[m0]['dev'])
+            self.motor[m0]['dev'].setSpeed(speed)
+            self.motor[m1]['dev'].setSpeed(speed)
+            self.txt.SyncDataEnd()
+
+            # wait for both motors to stop
+            while(not (self.motor[m0]['dev'].finished() and
+                       self.motor[m1]['dev'].finished())):
+                self.txt.updateWait()
+
+    def mobileTurn(self, dir, angle=0):
+        # make sure mobil setup exists
+        self.mobileCreate()
+
+        if not self.txt:
+            print("Turn", dir, angle, file=sys.stderr)
+        else:
+            m0 = self.mobile['motors'][0]
+            m1 = self.mobile['motors'][1]
+
+            # mobile robot has 2:1 gear and a wheel diameter of 6cm 
+            # and a wheel distance of ~15.5cm
+            dist = int(angle * self.mobile['motor_gear'] / self.mobile['deg2rot'])
+            speed = 512                # full throttle forward
+            if dir < 0: speed = -512   # full throttle backward
+
+            # run both motors synchronous in opposite direction at the same speed
+            self.txt.SyncDataBegin()
+            self.motor[m0]['dev'].setDistance(dist, self.motor[m1]['dev'])
+            self.motor[m1]['dev'].setDistance(dist, self.motor[m0]['dev'])
+            self.motor[m0]['dev'].setSpeed(speed)
+            self.motor[m1]['dev'].setSpeed(-speed)
+            self.txt.SyncDataEnd()
+
+            # wait for both motors to stop
+            while(not (self.motor[m0]['dev'].finished() and
+                       self.motor[m1]['dev'].finished())):
+                self.txt.updateWait()
+
+    # --------------------------------- inputs --------------------------------
 
     def getInput(self,type,port):
         if not self.txt:
@@ -396,6 +590,8 @@ class RunThread(QThread):
         
         return t
 
+    # --------------------------------- sound --------------------------------
+
     def playSound(self,snd):
         if not self.txt:
             # if no TXT could be connected just write to stderr
@@ -407,6 +603,19 @@ class RunThread(QThread):
             self.txt.setSoundIndex(snd)
             self.txt.incrSoundCmdId()
         
+    # --------------------------------- custom text --------------------------------
+
+    def textClear(self):
+        # clear remote and local
+        self.ws_thread.send(json.dumps( { "gui_cmd": "clear" } ))
+        self.ui_queue.put( { "cmd": "clear" } )
+
+    def textPrintColor(self, color, str):
+        # self.ws_thread.send(json.dumps( { "gui_cmd": "clear" } ))
+        self.ui_queue.put( { "text_color": [ color, str+"\n" ] } )
+        self.ws_thread.send(json.dumps( { "text_color": [ color, str+"\n" ] } ))
+        
+
     # this function is called from the blockly code itself. This feature has
     # to be enabled on javascript side in the code generation. The delay 
     # limits the load on the browser/client
@@ -507,9 +716,9 @@ class Application(TouchApplication):
         self.menu_select = menu.addAction(QCoreApplication.translate("Menu","Select..."))
         self.menu_select.triggered.connect(self.on_menu_select)
 
-        self.txt = QTextEdit()
-        self.txt.setReadOnly(True)
-        self.w.setCentralWidget(self.txt)
+        self.text = QTextEdit()
+        self.text.setReadOnly(True)
+        self.w.setCentralWidget(self.text)
 
         # a timer to read the ui output queue and to update
         # the screen
@@ -594,11 +803,31 @@ class Application(TouchApplication):
 
     def on_timer(self):
         while not self.ui_queue.empty():
-            self.append(self.ui_queue.get())
+            # get from queue
+            e = self.ui_queue.get()
 
-    def append(self, str):
-        self.txt.moveCursor(QTextCursor.End)
-        self.txt.insertPlainText(str)
+            # strings are just sent
+            if type(e) is str:
+                self.append(e)
+            else:
+                if 'cmd' in e:
+                    if e['cmd'] == "clear":
+                        self.text.clear();
+                if 'text_color' in e:
+                    self.append(e['text_color'][1], e['text_color'][0])
+
+    def append(self, str, color=None):
+        self.text.moveCursor(QTextCursor.End)
+        if not hasattr(self, 'tf') or not self.tf:
+            self.tf = self.text.currentCharFormat()
+            self.tf.setFontWeight(QFont.Bold);
+
+        if color:
+            tf = self.text.currentCharFormat()
+            tf.setForeground(QBrush(QColor(color)))
+            self.text.textCursor().insertText(str, tf);
+        else:
+            self.text.textCursor().insertText(str, self.tf);
 
     def on_program_ended(self):
         self.menu_run.setText(QCoreApplication.translate("Menu","Run"))
@@ -615,7 +844,7 @@ class Application(TouchApplication):
         
         # clear screen
         self.ws.send(json.dumps( { "gui_cmd": "clear" } ))
-        self.txt.clear()
+        self.text.clear()
 
         # and tell web gui that the program now runs
         self.ws.send(json.dumps( { "gui_cmd": "run" } ))
@@ -650,7 +879,7 @@ class Application(TouchApplication):
         
     def on_program_changed(self, prg):
         self.set_program(prg)
-        self.txt.clear()
+        self.text.clear()
         self.program_run()
         
     def get_program_list(self):
@@ -686,7 +915,7 @@ class Application(TouchApplication):
         # x[0] is the file name
         # x[1] is the internal program name
         self.set_program(x)
-        self.txt.clear()
+        self.text.clear()
         
         # also store the current program name in the settings
         self.on_setting( { "program_file_name": x[0], "program_name": x[1] } );

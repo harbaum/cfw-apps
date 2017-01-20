@@ -18,7 +18,7 @@ var MSG = {
     dropdown_del: "Löschen",
 
     // the skill system
-    skillToolTip: "Wähle Erfahrungsgrad '%1' aus",
+    skillToolTip: "Wähle Erfahrungsgrad '%1' aus.",
     skill1: "Anfänger",
     skill2: "Junior",
     skill3: "Fortgeschritten",
@@ -26,19 +26,38 @@ var MSG = {
     skill5: "Experte",
     
     // blocks
-    blockStartToolTip: "Hier startet die Programmausführung",
+    blockStartToolTip: "Hier startet die Programmausführung.",
 
     blockWaitMessage: "warte %1 Sekunden",
-    blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten",
+    blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten.",
     blockRepeatMessage: "wiederhole %1 %2",
-    blockRepeatToolTip: "Wiederhole etwas endlos",
+    blockRepeatToolTip: "Wiederhole etwas endlos.",
     blockPwmValueMessage: "%1",
-    blockPwmValueToolTip: "Variabler Ausgangszustand",
+    blockPwmValueToolTip: "Variabler Ausgangszustand.",
     blockOnOffMessage: "%1",
     blockOnOffToolTip: "An/aus Ausgangszustand",
 
+    blockMobileDriveMessage: "fahre %1 %2 cm",
+    blockForward: "vorwärts",
+    blockBackward: "rückwärts",
+    blockMobileDriveToolTip: "Fahre geradeaus",
+    blockMobileTurnMessage: "drehe %1 %2",
+    blockMobileTurnToolTip: "Auf der Stelle drehen",
+    blockMobileConfigMessage: "Mobilroboter-Konfiguration %1 Motoren %2 und %3 vom Typ: %4 Antriebsübersetzung %5 : %6 %7 Raddurchmesser: %8 cm %9 Radabstand: %10 cm",
+    blockMobileConfigToolTip: "Benutzerdefinierte Mobilroboter-Konfiguration. Wird nicht für das Discovery Set benötigt",
+
     blockOn: "ein",
     blockOff: "aus",
+
+    blockAngleMessage: "%1",
+    blockAngleToolTip: "Drehwinkel",
+    blockRot45: "etwas herum",
+    blockRot90: "halb herum",
+    blockRot135: "weit herum",
+    blockRot180: "ganz herum",
+
+    blockIOSyncMessage: "gleichzeitig %1 %2",
+    blockIOSyncToolTip: "Steuere Ausgänge gleichzeitig",
 
     blockInputModeVoltage: "Spannung (mV)",
     blockInputModeSwitch: "Schalterzustand",
@@ -65,11 +84,26 @@ var MSG = {
 
     blockMotorMessage: "starte Motor %1 %2 mit %3",
     blockMotorToolTip: "Starte einen Motor",
-    blockLeft: "linksrum",
-    blockRight: "rechtsrum",
+    blockLeft: "links",
+    blockRight: "rechts",
 
     blockMotorStepsMessage: "starte Motor %1 %2 mit %3 für %4 Umdrehungen",
     blockMotorStepsToolTip: "Starte einen Motor für eine vorgegebene Anzahl Umdrehungen",
+
+    blockMotorSetMessage: "setze Motor %1 %2 auf %3",
+    blockMotorSetToolTip: "Einen Motorwert setzen",
+    blockMotorSetSpeed: 'Geschwindigkeit',
+    blockMotorSetDir: 'Richtung',
+    blockMotorSetDist: 'Entfernung',
+    blockMotorSetGear: 'Typ',
+    blockLeftRightMessage: "%1",
+    blockLeftRightToolTip: "Drehrichtung links/rechts",
+    blockGearMessage: "%1",
+    blockGearToolTip: "Encoderimpulse pro Umdrehung",
+    blockGearTXT: "neuer Encodermotor (TXT)",
+    blockGearTX: "alter Encodermotor (TX)",
+    blockMotorSyncMessage: "kopple Motoren %1 und %2",
+    blockMotorSyncToolTip: "Zwei Motoren für Synchronlauf koppeln",
 
     blockMotorHasStoppedMessage: "Motor %1 hat gestoppt",
     blockMotorHasStoppedToolTip: "Teste, ob Motor gestoppt hat",
@@ -111,6 +145,11 @@ var MSG = {
     blockSoundRobby_3: "Robbie 3",
     blockSoundRobby_4: "Robbie 4",
 
+    blockTextPrintColorMessage: "gib aus in %1 %2",
+    blockTextPrintToolTip: "Gib einen Text in der angegebenen Farbe aus.",
+    blockTextEraseMessage: "Text löschen",
+    blockTextEraseToolTip: "Entferne allen Text vom Bildschirm.",
+
     textVariable: "Text",
     listVariable: "Liste",
 
@@ -119,6 +158,7 @@ var MSG = {
     catInputs: "Eingänge",
     catOutputs: "Ausgänge",
     catMotors: "Motoren",
+    catMobile: "Mobil",
     catLogic: "Logik",
     catLoops: "Schleifen",
     catMath: "Mathe",

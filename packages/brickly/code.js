@@ -11,6 +11,30 @@ Code.connected = false;
 Code.spinner = null;
 Code.files = [ ]
 
+function export_svg() {
+    aleph = Code.workspace.svgBlockCanvas_.cloneNode(true);
+    aleph.removeAttribute("width");
+    aleph.removeAttribute("height");
+
+    if (aleph.children[0] !== undefined) {
+        aleph.removeAttribute("transform");
+        aleph.children[0].removeAttribute("transform");
+        aleph.children[0].children[0].removeAttribute("transform");
+        var linkElm = document.createElementNS("http://www.w3.org/1999/xhtml", "style");
+        linkElm.textContent = Blockly.Css.CONTENT.join('') + '\n\n';
+        aleph.insertBefore(linkElm, aleph.firstChild);
+        //$(aleph).find('rect').remove();
+        var bbox = document.getElementsByClassName("blocklyBlockCanvas")[0].getBBox();
+        var xml = new XMLSerializer().serializeToString(aleph);
+        xml = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+bbox.width+'" height="'+bbox.height+'" viewBox="-10 -20 '+(bbox.width+10)+' '+(bbox.height+10)+'"><rect width="100%" height="100%" fill="white"></rect>'+xml+'</svg>';
+
+	var img_win = window.open();
+	img_win.document.open();
+	img_win.document.write(xml);
+	img_win.document.close();
+    }
+}
+
 /* When the user clicks on the button, */
 /* toggle between hiding and showing the dropdown content */
 function menu_show() {
@@ -227,7 +251,10 @@ function init() {
     Blockly.HSV_VALUE = 0.6;        // global brightness
 
     Blockly.BlockSvg.START_HAT = true;
-    
+
+    Blockly.FieldAngle.CLOCKWISE = true;
+    Blockly.FieldAngle.OFFSET = 90;
+   
     // enable/disable the speed control
     if(Code.skill > 1)	document.getElementById("speed_range").value = Code.speed;
     else                document.getElementById("speed").style.display = "none";
@@ -263,6 +290,28 @@ function loadToolbox(skill_level) {
 }
 
 function onWorkspaceCleared(event) {
+    // check if the user is trying to create additional start blocks
+    // and prevent that. We could tell blockly not to do that by
+    // settings the start block to "undeletable". But then we couldn't
+    // delete the entire program by deleting the start block
+    if(event.type == Blockly.Events.CREATE) {
+	var start_blocks = 0;
+	// check the current workspace for start blocks
+	var blocks = Code.workspace.getTopBlocks();
+	if(blocks.length >= 1)
+	    for(var i=0;i<blocks.length;i++)
+		if(blocks[i].type == "start")
+		    start_blocks++;
+
+	if(start_blocks > 1) {
+	    // this will trigger a delete event for the additional start
+	    // block. So we disable events for this
+	    Blockly.Events.disable();
+	    Code.workspace.undo(false);
+	    Blockly.Events.enable();
+	}
+    }
+
     // a program is deleted by deleting the stack with the start block
     // on top. This only works if the TXT is connected
     if((event.type == Blockly.Events.DELETE) &&
@@ -271,14 +320,13 @@ function onWorkspaceCleared(event) {
 	if(!Code.connected || (!confirm(MSG['confirm_delete'].replace("%1", 
                   htmlDecode(Code.program_name[1]))))) {
 
-	    // undo delete
-	    Code.workspace.undo(false);
-
-	    // the workspace jumps around when doing this. so recenter ...
-	    Code.workspace.scrollCenter();
-
 	    if(!Code.connected)
 		alert(MSG['delete_not_connected'])
+
+	    // undo delete
+	    Blockly.Events.disable();
+	    Code.workspace.undo(false);
+	    Blockly.Events.enable();
 
 	    return;
 	}
@@ -468,6 +516,10 @@ function ws_start(initial) {
 		}
 	    }
 
+	    if(typeof obj.text_color !== 'undefined') {
+		display_text("<font color='" + obj.text_color[0] + "'>" + obj.text_color[1] + "</font>");
+	    }
+
 	    if(typeof obj.program_files !== 'undefined') {
 		Code.files = obj.program_files;
 		menu_update();
@@ -483,7 +535,7 @@ function ws_start(initial) {
 	    }
 
             if(typeof obj.stdout !== 'undefined') 
-		display_text("<tt><b>"+html_escape(obj.stdout)+"</b></tt>");
+		display_text(html_escape(obj.stdout));
 
             if(typeof obj.stderr !== 'undefined')
 		display_text("<font color='red'><tt><b>"+
