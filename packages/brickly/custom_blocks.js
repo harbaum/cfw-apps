@@ -164,6 +164,29 @@ var block_mobile_drive = {
     "tooltip": MSG['blockMobileDriveToolTip']
 }
 
+var block_mobile_drive_while = {
+    "type": "mobile_drive_while",
+    "message0": MSG['blockMobileDriveWhileMessage'],
+    "args0": [
+	{ "type": "field_dropdown",
+	  "name": "dir",
+	  "options": [ [ MSG['blockForward'], "1" ],
+		       [ MSG['blockBackward'], "-1" ] ] },
+	{ "type": "field_dropdown",
+	  "name": "while",
+	  "options": [ [ MSG['blockWhile'], "True" ],
+		       [ MSG['blockUntil'], "False" ] ] },
+	{ "type": "input_value",
+	  "name": "value",
+	  "check": "Boolean"
+	}
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+    "colour": MobileBlocksHUE,
+    "tooltip": MSG['blockMobileDriveWhileToolTip']
+}
+
 var block_mobile_turn = {
     "type": "mobile_turn",
     "message0": MSG['blockMobileTurnMessage'],
@@ -568,6 +591,16 @@ Blockly.Python['mobile_drive'] = function(block) {
     return 'mobileDrive(%1, %2)\n'.replace('%1', dir).replace('%2', dist);
 }
 
+Blockly.Python['mobile_drive_while'] = function(block) {
+    var dir = block.getFieldValue('dir');
+    var w = block.getFieldValue('while');
+    var value = Blockly.Python.valueToCode(block, 'value',
+	       Blockly.Python.ORDER_ATOMIC) || 'False';
+    
+    // todo: value is only evaluated once!!
+    return 'mobileDriveWhile(%1, %2, \'%3\')\n'.replace('%1', dir).replace('%2', w).replace('%3', value);
+}
+
 Blockly.Python['mobile_turn'] = function(block) {
     var dir = block.getFieldValue('dir');
     var angle = Blockly.Python.valueToCode(block, 'angle', Blockly.Python.ORDER_ATOMIC);
@@ -718,6 +751,8 @@ function custom_blocks_init() {
 	init: function() { this.jsonInit(block_mobile_config); } };
     Blockly.Blocks['mobile_drive'] = {
 	init: function() { this.jsonInit(block_mobile_drive); } };
+    Blockly.Blocks['mobile_drive_while'] = {
+	init: function() { this.jsonInit(block_mobile_drive_while); } };
     Blockly.Blocks['mobile_turn'] = {
 	init: function() { this.jsonInit(block_mobile_turn); } };
     Blockly.Blocks['simple_angle'] = {

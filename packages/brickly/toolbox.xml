@@ -40,10 +40,11 @@
 	  </shadow>
 	</value>
       </block>
+      <block type="mobile_drive_while"></block>
       <block type="mobile_turn">
 	<value name="angle">
 	  <shadow type="angle">
-            <field name="angle">0</field>
+            <field name="angle">90</field>
 	  </shadow>
 	</value>
       </block>

@@ -208,6 +208,7 @@ class RunThread(QThread):
                     code_txt = code_txt.replace("setMotorOld(", "wrapper.setMotorOld(");
                     code_txt = code_txt.replace("mobileConfig(", "wrapper.mobileConfig(");
                     code_txt = code_txt.replace("mobileDrive(", "wrapper.mobileDrive(");
+                    code_txt = code_txt.replace("mobileDriveWhile(", "wrapper.mobileDriveWhile(");
                     code_txt = code_txt.replace("mobileTurn(", "wrapper.mobileTurn(");
                     code_txt = code_txt.replace("wait(", "wrapper.wait(");
                     code_txt = code_txt.replace("sync(", "wrapper.sync(");
@@ -488,6 +489,44 @@ class RunThread(QThread):
         if not self.mobile['wheels'][0]: self.mobile['wheels'][0] = 1
         if not self.mobile['wheels'][1]: self.mobile['wheels'][1] = 1
 
+    def mobileDriveWhile(self, dir, w, val):
+        # make sure mobil setup exists
+        self.mobileCreate()
+
+        if not self.txt:
+            print("Drive", dir, w, val, file=sys.stderr)
+        else:
+            m0 = self.mobile['motors'][0]
+            m1 = self.mobile['motors'][1]
+
+            speed = 512                # full throttle forward
+            if dir < 0: speed = -512   # full throttle backward
+            
+            # run both motors synchronous in the same direction at the same speed
+            self.txt.SyncDataBegin()
+            self.motor[m0]['dev'].setDistance(0, self.motor[m1]['dev'])
+            self.motor[m1]['dev'].setDistance(0, self.motor[m0]['dev'])
+            self.motor[m0]['dev'].setSpeed(speed)
+            self.motor[m1]['dev'].setSpeed(speed)
+            self.txt.SyncDataEnd()
+
+            # wait for event
+            if w:
+                while(eval(val)):
+                    self.txt.updateWait()
+                    if self.stop_requested:
+                        raise UserInterrupt(42)
+            else:
+                while(not eval(val)):
+                    self.txt.updateWait()
+                    if self.stop_requested:
+                        raise UserInterrupt(42)
+                    
+            self.txt.SyncDataBegin()
+            self.motor[m0]['dev'].stop()
+            self.motor[m1]['dev'].stop()
+            self.txt.SyncDataEnd()
+
     def mobileDrive(self, dir, dist=0):
         # make sure mobil setup exists
         self.mobileCreate()
@@ -516,6 +555,8 @@ class RunThread(QThread):
             while(not (self.motor[m0]['dev'].finished() and
                        self.motor[m1]['dev'].finished())):
                 self.txt.updateWait()
+                if self.stop_requested:
+                    raise UserInterrupt(42)
 
     def mobileTurn(self, dir, angle=0):
         # make sure mobil setup exists
