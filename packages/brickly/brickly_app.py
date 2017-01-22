@@ -200,7 +200,7 @@ class RunThread(QThread):
                     wrapper = self    # make self accessible to all functions of blockly code
                 
                     code_txt = f.read()
-                    code_txt = code_txt.replace("# speed", "wrapper.ws_thread.speed");
+                    code_txt = code_txt.replace("# speed", "wrapper.speed");
                     code_txt = code_txt.replace("# highlightBlock(", "wrapper.highlightBlock(");
                     code_txt = code_txt.replace("setOutput(", "wrapper.setOutput(");
                     code_txt = code_txt.replace("setMotor(", "wrapper.setMotor(");
@@ -757,9 +757,26 @@ class Application(TouchApplication):
         self.menu_select = menu.addAction(QCoreApplication.translate("Menu","Select..."))
         self.menu_select.triggered.connect(self.on_menu_select)
 
+        #
+        self.stack = QStackedWidget(self.w)
+        
+        # the program text output screen
         self.text = QTextEdit()
         self.text.setReadOnly(True)
-        self.w.setCentralWidget(self.text)
+        self.stack.addWidget(self.text)
+
+        # the page with the big "start" button
+        self.start = QWidget()
+        self.start_layout = QVBoxLayout()
+        self.start_but = QPushButton(QCoreApplication.translate("Menu","Run"))
+        self.start_but.clicked.connect(self.on_start_clicked)
+        self.start_layout.addWidget(self.start_but)
+        self.start.setLayout(self.start_layout)
+        self.stack.addWidget(self.start)
+
+        self.w.setCentralWidget(self.stack)
+
+        self.stack.setCurrentWidget(self.start)
 
         # a timer to read the ui output queue and to update
         # the screen
@@ -780,8 +797,8 @@ class Application(TouchApplication):
             # in "online" mode simply remove the launch flag, but don't
             # run the program immediately
             os.remove(launch_fname)
-        else:
-            self.program_run()
+        #else:
+        #    self.program_run()
   
         self.w.show()
         self.exec_()        
@@ -803,7 +820,7 @@ class Application(TouchApplication):
     def on_client_connected(self, connected):
         # on connection tell browser whether code is being executed
         if connected:
-            self.ws.send(json.dumps( { "running": not self.thread.isFinished() } ))
+            self.ws.send(json.dumps( { "running": self.thread.isRunning() } ))
 
         # disable local program selection while connected
         self.menu_select.setEnabled(not connected);
@@ -872,6 +889,9 @@ class Application(TouchApplication):
 
     def on_program_ended(self):
         self.menu_run.setText(QCoreApplication.translate("Menu","Run"))
+
+        # bring start button to top
+        self.stack.setCurrentWidget(self.start)
         
     def program_delete(self):
         # delete the blockly xml file ...
@@ -880,6 +900,9 @@ class Application(TouchApplication):
         self.delete_file(os.path.splitext(self.program_name[0])[0] + ".py")
 
     def program_run(self):
+        # bring text view to top
+        self.stack.setCurrentWidget(self.text)
+
         # change "Run" to "Stop!"
         self.menu_run.setText(QCoreApplication.translate("Menu","Stop!"))
         
@@ -899,10 +922,14 @@ class Application(TouchApplication):
         # the GUI will be updated once the thread has stoppped
         self.thread.stop()
 
+    def on_start_clicked(self):
+        if not self.thread.isRunning():
+            self.program_run()
+        
     def on_menu_run(self):
         # the local user has selected the run/stop menu entry
         # on the touchscreen
-        if not self.thread.isFinished():
+        if self.thread.isRunning():
             self.program_stop()
         else:
             self.program_run()
