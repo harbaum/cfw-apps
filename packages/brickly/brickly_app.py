@@ -722,7 +722,52 @@ class SelectionDialog(TouchDialog):
     def on_selection_changed(self, prg):
         self.selection_changed.emit(prg)
         self.close()
+
+# a button that sends resize events
+class BricklyPushButton(QPushButton):
+    resize = pyqtSignal()
+
+    def __init__(self, str, parent=None):
+        QPushButton.__init__(self, str, parent)
+        self.installEventFilter(self)
         
+    def eventFilter(self, obj, event):
+        if event.type() == event.Resize:
+            self.resize.emit()
+        return False
+
+# a textedit with overlayed button
+class BricklyTextEdit(QTextEdit):
+    run = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        QTextEdit.__init__(self, parent)
+        self.installEventFilter(self)
+
+        self.run_but = BricklyPushButton(QCoreApplication.translate("Menu","Run"), self)
+        self.run_but.clicked.connect(self.on_run_clicked)
+        self.run_but.resize.connect(self.pos_button)
+        style = "QPushButton { padding: 8; background-color: #5c96cc; }"
+        self.run_but.setStyleSheet(style)
+
+        self.pos_button()
+        
+    def pos_button(self):
+        self.run_but.move((self.width()-self.run_but.width())/2,
+                          (self.height()-2*self.run_but.height()));
+        
+    def on_run_clicked(self):
+        self.run.emit()
+
+    def eventFilter(self, obj, event):
+        if event.type() == event.Resize:
+            self.pos_button()
+        return False
+
+    def but_show(self, show=True):
+        if show: self.run_but.show()
+        else:    self.run_but.hide()
+
 class Application(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
@@ -758,25 +803,13 @@ class Application(TouchApplication):
         self.menu_select.triggered.connect(self.on_menu_select)
 
         #
-        self.stack = QStackedWidget(self.w)
         
         # the program text output screen
-        self.text = QTextEdit()
+        self.text = BricklyTextEdit()
         self.text.setReadOnly(True)
-        self.stack.addWidget(self.text)
-
-        # the page with the big "start" button
-        self.start = QWidget()
-        self.start_layout = QVBoxLayout()
-        self.start_but = QPushButton(QCoreApplication.translate("Menu","Run"))
-        self.start_but.clicked.connect(self.on_start_clicked)
-        self.start_layout.addWidget(self.start_but)
-        self.start.setLayout(self.start_layout)
-        self.stack.addWidget(self.start)
-
-        self.w.setCentralWidget(self.stack)
-
-        self.stack.setCurrentWidget(self.start)
+        self.text.run.connect(self.on_run_clicked)
+        
+        self.w.setCentralWidget(self.text)
 
         # a timer to read the ui output queue and to update
         # the screen
@@ -891,7 +924,7 @@ class Application(TouchApplication):
         self.menu_run.setText(QCoreApplication.translate("Menu","Run"))
 
         # bring start button to top
-        self.stack.setCurrentWidget(self.start)
+        self.text.but_show(True);
         
     def program_delete(self):
         # delete the blockly xml file ...
@@ -901,7 +934,7 @@ class Application(TouchApplication):
 
     def program_run(self):
         # bring text view to top
-        self.stack.setCurrentWidget(self.text)
+        self.text.but_show(False);
 
         # change "Run" to "Stop!"
         self.menu_run.setText(QCoreApplication.translate("Menu","Stop!"))
@@ -922,7 +955,7 @@ class Application(TouchApplication):
         # the GUI will be updated once the thread has stoppped
         self.thread.stop()
 
-    def on_start_clicked(self):
+    def on_run_clicked(self):
         if not self.thread.isRunning():
             self.program_run()
         
