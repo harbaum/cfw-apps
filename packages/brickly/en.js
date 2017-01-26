@@ -3,6 +3,7 @@
 var MSG = {
     buttonRun: "Run",
     buttonStop: "Stop!",
+    buttonConnect: "Connect",
     stateDisconnected: "disconnected",
     stateConnected: "connected",
     stateConnecting: "connecting...",

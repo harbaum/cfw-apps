@@ -823,16 +823,6 @@ class Application(TouchApplication):
         self.thread.done.connect(self.on_program_ended)
         self.ws.speed_changed.connect(self.thread.set_speed)
 
-        # check for launch flag and run ...
-        path = os.path.dirname(os.path.realpath(__file__))
-        launch_fname = os.path.join(path, "brickly.launch")
-        if os.path.isfile(launch_fname):
-            # in "online" mode simply remove the launch flag, but don't
-            # run the program immediately
-            os.remove(launch_fname)
-        #else:
-        #    self.program_run()
-  
         self.w.show()
         self.exec_()        
 

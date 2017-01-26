@@ -3,6 +3,7 @@
 var MSG = {
     buttonRun: "Los",
     buttonStop: "Stopp!",
+    buttonConnect: "Verbinde",
     stateDisconnected: "getrennt",
     stateConnected: "verbunden",
     stateConnecting: "verbinde...",
@@ -150,7 +151,7 @@ var MSG = {
     blockSoundRobby_4: "Robbie 4",
 
     blockTextPrintColorMessage: "gib aus in %1 %2",
-    blockTextPrintToolTip: "Gib einen Text in der angegebenen Farbe aus.",
+    blockTextPrintColorToolTip: "Gib einen Text in der angegebenen Farbe aus.",
     blockTextEraseMessage: "Text löschen",
     blockTextEraseToolTip: "Entferne allen Text vom Bildschirm.",
 

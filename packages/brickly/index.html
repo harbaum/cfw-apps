@@ -12,12 +12,18 @@
   <script src="./code.js"></script>
   <script src="./custom_blocks.js"></script>
   <script src="./spin.js"></script>
+  <script src="./audio.js"></script>
 </head>
 
 <body>
-  <div id="lang">
-    <img src="de.gif" onclick="set_parm('lang','de',Code.lang)"/>&nbsp;
-    <img src="en.gif" onclick="set_parm('lang','en',Code.lang)"/>
+  <div id="icons">
+    <div id="tool">
+      <!-- <img id="audio_icon" src="icon_audio.svg" width="24" height="24" onclick="audio_rec()"/><canvas style="position: absolute;" id="meter" width="24" height="24" onclick="audio_rec()"></canvas>&nbsp;-->
+      <img src="icon_print.svg" width="24" height="24" onclick="export_svg()"/>&nbsp;&nbsp;&nbsp;
+    </div><div id="lang">
+      <img src="de.gif" onclick="set_parm('lang','de',Code.lang)"/>&nbsp;
+      <img src="en.gif" onclick="set_parm('lang','en',Code.lang)"/>
+    </div>
   </div>
 
   <div id="skill">
@@ -31,7 +37,7 @@
   </div>
 
   <div id="blocklyDiv" style="position: absolute;"></div>
-  <div id="textDiv" style="position: absolute; overflow-y: auto;"></div> 
+  <div id="textDiv" style="position: absolute; overflow-y: auto;"></div>
 
   <table id="global" width="100%" border="0" height="98%">
     <tr><td colspan="2">
@@ -46,13 +52,9 @@
 	  <tr><td>
 	      <table width="100%" border="0" cellpadding="0"><tr>
 		  <!-- the run/stop button -->
-		  <td width="33%"><button id="button"></button></td>
-		  <!-- the connection state text -->
-		  <td width="33%" align="center">
-		    <div id="stateDiv" style="color: #fcce04;"></div>
-		  </td>
+		  <td width="50%"><button id="button"></button></td>
 		  <!-- the dropdown menu -->
-		  <td height="40" width="33%" align="right">
+		  <td height="40" width="50%" align="right">
 		    <div id="dropdown" class="dropdown">
 		      <a id="dropdown_button" class="dropdown_button dropdown-keep-open" onclick="menu_show()"><img class="dropdown-keep-open" src="icon_menu.svg" width="20" height="20"></a>
 		      <div id="dropdown_content" class="dropdown_content">

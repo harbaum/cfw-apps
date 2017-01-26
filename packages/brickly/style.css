@@ -118,11 +118,23 @@ button[disabled=disabled], button:disabled {
     height: 100%;  /* 99 */
 }
 
-/* the language icons are placed top right */
-#lang {
+/* the language and tool icons are placed top right */
+#icons {
+    display: table-row;
     position: absolute;
     top: 10px;
     right: 10px;
+}
+
+#tool, #lang {
+    display: table-cell;
+    vertical-align: top;
+}
+
+/* shadow for tool icons */
+#tool img {
+    -webkit-filter: drop-shadow(5px 5px 5px #222);
+    filter: drop-shadow(5px 5px 5px #222);
 }
 
 /* the skill buttons are placed top left */
@@ -132,10 +144,16 @@ button[disabled=disabled], button:disabled {
     left: 10px;
 }
 
+/* border and shadow for language icons */
 #lang img {
     border: 2px solid lightgrey;
     box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
+
+/* #lang img .tool_icon {
+    border: 10px solid red;
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19); 
+}*/
 
 /* http://www.cssportal.com/style-input-range/ */
 /* http://danielstern.ca/range.css/#/ */
@@ -331,3 +349,4 @@ table#dropdown_content_files {
 .show {
     display:block;
 }
+

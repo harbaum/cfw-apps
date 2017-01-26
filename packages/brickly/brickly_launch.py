@@ -46,10 +46,6 @@ if current_executable != None and current_executable != "":
     while launcher_cmd("get-app", True) != "":
         time.sleep(0.1)
 
-# toucb the "just launched" file
-stamp = open("brickly.launch", 'w')
-stamp.close()
-    
 # write a valid http reply header
 print("Content-Type: text/html")
 print("")

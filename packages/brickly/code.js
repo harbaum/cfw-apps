@@ -32,6 +32,8 @@ function export_svg() {
 	img_win.document.open();
 	img_win.document.write(xml);
 	img_win.document.close();
+	img_win.print();
+	img_win.close();
     }
 }
 
@@ -347,6 +349,7 @@ function onWorkspaceCleared(event) {
     }
     
     // enable the run button once the first block has been added
+    // and once the txt is connected
     if((event.type == Blockly.Events.CREATE) &&
        (Code.workspace.getAllBlocks().length >= 1))
 	button_run_enable(true);
@@ -380,7 +383,7 @@ function toolbox_install(toolboxText) {
     // don't allow orphaned stacks
     Code.workspace.addChangeListener(Blockly.Events.disableOrphans);
     
-    button_set_state(true, true);
+    button_set('run', false);
     display_state(MSG['stateDisconnected']);
 
     // fixme: this must not happen before screen resizing is done
@@ -431,11 +434,11 @@ function set_parm(name, newVal, curVal) {
 }
 
 function display_state(str) {
-    document.getElementById("stateDiv").innerHTML = str;
+    // document.getElementById("stateDiv").innerHTML = str;
 }
 
 // the run button may only be enabled if there's at least
-// none block in the workspace
+// one block in the workspace
 function button_run_enable(enable) {
     // if button is in "run" mode enable and disable
     // it immediately
@@ -443,17 +446,17 @@ function button_run_enable(enable) {
     but.run_enabled = enable;
 
     // if the button is currently in "run mode" (and not "stopp")
-    // then disable and enable it immediately
-    if(but.run_mode)
+    // and we are connected then disable and enable it immediately
+    if(but.run_mode && Code.connected)
 	but.disabled = !enable;
 }
 
 // switch between "Run..." and "Stop!" button
-function button_set_state(enable, run) {
+function button_set(state, enable) {
     but = document.getElementById("button");
     but.disabled = !enable;
-    but.run_mode = run;
-    if(run) {
+    but.run_mode = state == 'run';
+    if(state == 'run') {
         but.innerHTML = MSG['buttonRun'];
         but.onclick = program_run;
 
@@ -461,10 +464,14 @@ function button_set_state(enable, run) {
 	// then keep button disabled
 	if(enable && !but.run_enabled)
 	    but.disabled = true;
-    } else {
+    } else if(state == 'stop') {
         but.innerHTML = MSG['buttonStop'];
         but.onclick = program_stop;
-    }
+    } else if(state == 'connect') {
+        but.innerHTML = MSG['buttonConnect'];
+        but.onclick = txt_connect;
+    } else
+	console.log("Illegal button state")
 }
 
 // htmlize text received from the code before it's being
@@ -512,7 +519,7 @@ function ws_start(initial) {
 		if(obj.gui_cmd == "clear") display_text_clr();
 		if(obj.gui_cmd == "run") {
 		    display_state(MSG['stateRunning']);
-		    button_set_state(true, false);
+		    button_set('stop', true);
 		}
 	    }
 
@@ -530,7 +537,7 @@ function ws_start(initial) {
 		    // client informs us after a connect that there's code being
 		    // executed
 		    display_state(MSG['stateRunning']);
-		    button_set_state(true, false);		
+		    button_set('stop', true);		
 		}
 	    }
 
@@ -545,8 +552,7 @@ function ws_start(initial) {
 		if(obj.highlight == "none") {
 		    display_state(MSG['stateProgramEnded']);
 		    Code.workspace.highlightBlock();
-
-		    button_set_state(true, true);
+		    button_set('run', true);
 		} else
 		    Code.workspace.highlightBlock(obj.highlight);
 	    }
@@ -556,15 +562,14 @@ function ws_start(initial) {
     Code.ws.onopen = function(evt) {
 	// update GUI to reflect the connected state
         Code.connected = true;
-        button_set_state(true, true);          // initially display an enabled run button
+        button_set('run', true);
 	display_state(MSG['stateConnected']);
 	
 	// request list of program files stored on TXT
 	Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
 
-	// Not the initial probe but a connection initialted by the user? Then run the code ...
-	if(!initial)
-	    send_and_run_code();
+	// the spinner may still be there from the launch request
+	spinner_stop();
     };
     
     Code.ws.onerror = function(evt) {
@@ -574,13 +579,19 @@ function ws_start(initial) {
         // retry if we never were successfully connected
         if(!Code.connected) {
             //try to reconnect in 10ms
-	    if(!initial) setTimeout(function(){ ws_start(false) }, 100);
-	    // setTimeout(function(){ ws_start(false) }, 100);
+	    if(!initial) {
+		setTimeout(function(){ ws_start(false) }, 100);
+	    } else {
+		// show the connect button
+		button_set('connect', true);
+		txt_connect();
+	    }
         } else {
 	    // connection lost
             display_state(MSG['stateDisconnected']);
             Code.connected = false;
-            button_set_state(true, true);
+            // button_set('run', false);
+            button_set('connect', true);
 	    Code.workspace.highlightBlock();
 	    menu_disable(true);
 	    delete Code.ws;
@@ -589,7 +600,7 @@ function ws_start(initial) {
 };
 
 function program_stop() {
-    button_set_state(false, false);
+    button_set('stop', false);
     Code.ws.send(JSON.stringify( { command: "stop" } ));
 }
 
@@ -719,7 +730,16 @@ function spinner_stop() {
     }
 }
 
-function send_and_run_code() {
+function program_run() {
+    // cannot do this if we aren't connected
+    if(!Code.connected) return;
+
+    // add highlight information to the code. Make it commented so the code
+    // will run on any python setup. If highlighting is wanted these lines
+    // need to be uncommented on server side
+    Blockly.Python.STATEMENT_PREFIX = '# highlightBlock(%1)\n';
+    Blockly.Python.addReservedWords('wrapper');
+
     // Generate Python code and POST it
     var python_code = Blockly.Python.workspaceToCode(Code.workspace);
 
@@ -746,7 +766,7 @@ function send_and_run_code() {
     Code.ws.send(JSON.stringify( { lang: Code.lang } ));
     Code.ws.send(JSON.stringify( { command: "save_settings" } ));
 
-    // send python and blockly version fo the current code
+    // send python and blockly version of the current code
     Code.ws.send(JSON.stringify( { python_code: python_code } ));
     Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
 
@@ -754,27 +774,19 @@ function send_and_run_code() {
     Code.ws.send(JSON.stringify( { command: "run" } ));
 
     // enable button and make it a "stop!" button
-    button_set_state(true, false);
-    spinner_stop();
+    button_set('stop', true);
 
     // request list of program files stored on TXT as it may have changed
     Code.ws.send(JSON.stringify( { command: "list_program_files" } ));
 }
     
-function program_run() {
-    // add highlight information to the code. Make it commented so the code
-    // will run on any python setup. If highlighting is wanted these lines
-    // need to be uncommented on server side
-    Blockly.Python.STATEMENT_PREFIX = '# highlightBlock(%1)\n';
-    Blockly.Python.addReservedWords('wrapper');
-
-    if(Code.connected) {
-	send_and_run_code();
-    } else {
+function txt_connect() {
+    if(!Code.connected) {
+	
 	// if we aren't connected then we need to start the brickly app on the TXT
 	// first. This is done by posting the code
 	
-	button_set_state(false, true);
+	button_set('run', false);
         display_state(MSG['stateConnecting']);
 
 	spinner_start();
@@ -784,9 +796,10 @@ function program_run() {
 	// http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http.onreadystatechange = function() {
 	    if (http.readyState == XMLHttpRequest.DONE) {
-		if (http.status != 200) 
+		if (http.status != 200) {
 		    alert("Error " + http.status + "\n" + http.statusText);
-		else
+		    spinner.stop();
+		} else
 		    ws_start(false);
 	    }
 	}
