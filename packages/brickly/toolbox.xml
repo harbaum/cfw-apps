@@ -15,6 +15,10 @@
     <block type="simple_input"></block>
     <block type="input"></block>
     <block type="input_converter_r2t"></block>
+    <sep gap="50"></sep>
+    <block type="js_present"></block>
+    <block type="js_axis"></block>
+    <block type="js_button"></block>
   </category>
   <category name="{catOutputs}" colour="220">
     <block type="output"></block>

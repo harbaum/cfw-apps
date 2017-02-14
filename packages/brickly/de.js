@@ -28,6 +28,7 @@ var MSG = {
     
     // blocks
     blockStartToolTip: "Hier startet die Programmausführung.",
+    blockStartToolTipUnsaved: "\n(das Programm wurde noch nicht gespeichert)",
 
     blockWaitMessage: "warte %1 Sekunden",
     blockWaitToolTip: "Programm eine vorgegebene Zeit anhalten.",
@@ -115,6 +116,35 @@ var MSG = {
 
     blockMotorOffMessage: "stoppe Motor %1",
     blockMotorOffToolTip: "Schalte einen Motor aus",
+
+    blockJsPresentMessage: "Joystick ist angeschlossen",
+    blockJsPresentToolTip: "Stellt fest, ob ein Joystick an USB angeschlossen ist",
+    blockJsAxisMessage: "Joystick-Achse %1",
+    blockJsAxisToolTip: "Lese eine Joystick-Achse",
+    blockJsButtonMessage: "Joystick-Knopf %1 ist gedrückt",
+    blockJsButtonToolTip: "Lese einen Joystick-Knopf",
+
+    blockAxisX: "X",
+    blockAxisY: "Y",
+    blockAxisZ: "Z",
+    blockAxisRx: "rechts X",
+    blockAxisRy: "rechts Y",
+    blockAxisRz: "rechts Z",
+    blockAxisHx: "Coolie-Hat X",
+    blockAxisHy: "Coolie-Hat Y",
+
+    blockButtonTrigger: "Feuer",
+    blockButtonThumb: "Daumen", 
+    blockButtonThumb2: "Daumen 2",
+    blockButtonTop: "Oben",
+    blockButtonTop2: "Oben 2",
+    blockButtonPinkieBtn: "kl. Finger",
+    blockButtonBaseBtn: "Basis",
+    blockButtonBaseBtn2: "Basis 2", 
+    blockButtonBaseBtn3: "Basis 3",
+    blockButtonBaseBtn4: "Basis 4",
+    blockButtonBaseBtn5: "Basis 5",
+    blockButtonBaseBtn6: "Basis 6",
 
     blockPlaySndMessage: "spiele Geräusch %1",
     blockPlaySndToolTip: "Spiele ein Geräusch ab",

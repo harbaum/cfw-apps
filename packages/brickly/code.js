@@ -2,6 +2,7 @@
 
 var Code = {};
 var USER_FILES = "user/"
+var MAX_TEXT_LINES = 50;
 Code.workspace = null;
 Code.Msg = {};
 Code.speed = 90;                                     // 90% default speed
@@ -32,8 +33,8 @@ function export_svg() {
 	img_win.document.open();
 	img_win.document.write(xml);
 	img_win.document.close();
-	img_win.print();
-	img_win.close();
+//	img_win.print();
+//	img_win.close();
     }
 }
 
@@ -107,6 +108,54 @@ function menu_text_edit() {
 	(name_exists(name) || name == "");
 }
 
+// this function replaces the green triangle by a red dot in the start
+// button to indicate that the current version has not been saved yet
+function check_savestate(clean) {
+    if(clean) {
+	// if clean is true, then this sure is a saved version
+	// and we store the code for reference
+	Code.current_code = Blockly.Python.workspaceToCode(Code.workspace);
+	unsaved = false  // this sure is saved
+    } else {
+	code = Blockly.Python.workspaceToCode(Code.workspace);
+	unsaved = code != Code.current_code;
+    }
+
+    // restart auto save timer while user is still editing. Save once he's stopped
+    // editing for at least 5 seconds
+    if(unsaved)
+	on_autosave_timeout();
+    
+    if(Code.unsaved == unsaved) {
+	// unsaved flag hasn't changed
+	return;
+    }
+
+    var blocks = Code.workspace.getTopBlocks();
+    var icon = unsaved?"icon_unsaved.svg":"icon_start.svg";
+    var tooltip = MSG['blockStartToolTip'];
+    if(unsaved) tooltip += MSG['blockStartToolTipUnsaved'];
+
+    if(blocks.length >= 1) {
+	for(var i=0;i<blocks.length;i++) {
+	    if(blocks[i].type == "start") {
+		blocks[i].inputList[0].fieldRow[0].setValue(icon);
+		blocks[i].setTooltip(tooltip);
+//		if(unsaved && (blocks[i].inputList[0].fieldRow.length == 2)) 
+//		    blocks[i].inputList[0].appendField(new Blockly.FieldImage("icon_unsaved.svg", 16, 16, "*"), "UNSAVED_ICON")
+//		else if(!unsaved) 
+//		    blocks[i].inputList[0].removeField("UNSAVED_ICON")
+	    }
+	}
+    }
+
+    Code.unsaved = unsaved;
+}
+
+var on_autosave_timeout = debounce(function() {
+    save_blockly();
+}, 10000);
+
 function workspace_start() {
     // create a new program
     Blockly.Events.disable();
@@ -125,6 +174,9 @@ function workspace_start() {
     // add the "start" block
     xml = Blockly.Xml.textToDom(xml_text);
     Blockly.Xml.domToWorkspace(xml, Code.workspace);
+
+    // everything is saved
+    check_savestate(true)
 
     // center if scrolling is enabled
     Code.workspace.scrollCenter();
@@ -291,7 +343,11 @@ function loadToolbox(skill_level) {
     http.send();
 }
 
-function onWorkspaceCleared(event) {
+function onWorkspaceChange(event) {
+    // user has changed the workspace. This has potentially
+    // make the current state unsaved
+    check_savestate(false)
+
     // check if the user is trying to create additional start blocks
     // and prevent that. We could tell blockly not to do that by
     // settings the start block to "undeletable". But then we couldn't
@@ -318,7 +374,6 @@ function onWorkspaceCleared(event) {
     // on top. This only works if the TXT is connected
     if((event.type == Blockly.Events.DELETE) &&
        (event.oldXml.getAttribute("type") == "start")) {
-
 	if(!Code.connected || (!confirm(MSG['confirm_delete'].replace("%1", 
                   htmlDecode(Code.program_name[1]))))) {
 
@@ -378,7 +433,7 @@ function toolbox_install(toolboxText) {
 
     // disable and enable run button depending on workspace being used
     // and delete program if all blocks are deleted
-    Code.workspace.addChangeListener(onWorkspaceCleared);
+    Code.workspace.addChangeListener(onWorkspaceChange);
 
     // don't allow orphaned stacks
     Code.workspace.addChangeListener(Blockly.Events.disableOrphans);
@@ -487,13 +542,43 @@ function html_escape(str) {
 
 // display some text output by the code
 function display_text(str) {
+    // keep a scrollback buffer xyz
+
+    if (typeof Code.text_buffer === 'undefined') {
+	// initial state: empty array
+	Code.text_buffer = [ "" ]
+    }
+    
+    lines = str.split('\n')
+    if(lines.length > 0) {
+	// append first line to the last line of the buffer
+	Code.text_buffer[Code.text_buffer.length - 1] += lines[0]
+	
+	// create buffer entries for further lines
+	if(lines.length > 1)
+	    for(var i=1;i<lines.length; i++) 
+		Code.text_buffer[Code.text_buffer.length] = lines[i];
+	// console.log(Code.text_buffer)
+    }
+
+    // limit the total number of lines in the buffer
+    while(Code.text_buffer.length > MAX_TEXT_LINES)
+	Code.text_buffer.shift();
+
     var objDiv = document.getElementById("textDiv");
-    objDiv.innerHTML += str.replace(/\n/g,'<br />');
+
+    // build a html representation of the buffer
+    s = ""
+    for(var i in Code.text_buffer)
+	s += Code.text_buffer[i] + "<br />";
+
+    objDiv.innerHTML = s;
     objDiv.scrollTop = objDiv.scrollHeight;
 }
 
 // clear the text area
 function display_text_clr() {
+    Code.text_buffer = [ "" ]
     document.getElementById("textDiv").innerHTML = "";
 }
 
@@ -699,8 +784,12 @@ function program_load(name) {
 			}
 		    }
 		}
-		
+
+		// make sure the file loading is not considered "editing"
 		Blockly.Xml.domToWorkspace(xml, Code.workspace);
+
+		// everything is saved
+		check_savestate(true)
             } else {
 		// could not load program. Make sure the
 		// default start block is there
@@ -730,6 +819,29 @@ function spinner_stop() {
     }
 }
 
+function save_blockly() {
+    // cannot do this if we aren't connected
+    if(!Code.connected) return;
+
+    // set current program name
+    Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
+
+    // generate xml and post it with the python code
+    var blockly_dom = Blockly.Xml.workspaceToDom(Code.workspace);
+
+    // insert settings (speed) into xml
+    var settings = goog.dom.createDom('settings');
+    settings.setAttribute('speed', Code.speed);
+    settings.setAttribute('name', Code.program_name[1]);
+    blockly_dom.appendChild(settings)
+	
+    var blockly_code = Blockly.Xml.domToText(blockly_dom);
+
+    Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
+
+    check_savestate(true)
+}
+
 function program_run() {
     // cannot do this if we aren't connected
     if(!Code.connected) return;
@@ -746,17 +858,6 @@ function program_run() {
     // preprend current speed settings
     python_code = "# speed = " + Code.speed.toString() + "\n" + python_code;
 
-    // generate xml and post it with the python code
-    var blockly_dom = Blockly.Xml.workspaceToDom(Code.workspace);
-
-    // insert settings (speed) into xml
-    var settings = goog.dom.createDom('settings');
-    settings.setAttribute('speed', Code.speed);
-    settings.setAttribute('name', Code.program_name[1]);
-    blockly_dom.appendChild(settings)
-	
-    var blockly_code = Blockly.Xml.domToText(blockly_dom);
-
     // set current program name
     Code.ws.send(JSON.stringify( { program_name: Code.program_name } ));
 
@@ -768,7 +869,7 @@ function program_run() {
 
     // send python and blockly version of the current code
     Code.ws.send(JSON.stringify( { python_code: python_code } ));
-    Code.ws.send(JSON.stringify( { blockly_code: blockly_code } ));
+    save_blockly();
 
     // and finally request app to be started
     Code.ws.send(JSON.stringify( { command: "run" } ));

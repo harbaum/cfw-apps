@@ -27,6 +27,7 @@ var MSG = {
 
     // blocks
     blockStartToolTip: "Program execution starts here",
+    blockStartToolTipUnsaved: "\n(the program has not been saved yet)",
 
     blockWaitMessage: "wait %1 seconds",
     blockWaitToolTip: "Pause program execution a given time",
@@ -114,6 +115,35 @@ var MSG = {
 
     blockMotorOffMessage: "stop motor %1",
     blockMotorOffToolTip: "Stop a motor",
+
+    blockJsPresentMessage: "joystick is connected",
+    blockJsPresentToolTip: "Checks whether a joystick is connected to USB",
+    blockJsAxisMessage: "joystick axis %1",
+    blockJsAxisToolTip: "Read a joystick axis",
+    blockJsButtonMessage: "joystick button %1 is pressed",
+    blockJsButtonToolTip: "Read a joystick button",
+
+    blockAxisX: "X",
+    blockAxisY: "Y",
+    blockAxisZ: "Z",
+    blockAxisRx: "right X",
+    blockAxisRy: "right Y",
+    blockAxisRz: "right Z",
+    blockAxisHx: "coolie hat X",
+    blockAxisHy: "coolie hat Y",
+
+    blockButtonTrigger: "trigger",
+    blockButtonThumb: "thumb", 
+    blockButtonThumb2: "thumb2",
+    blockButtonTop: "top",
+    blockButtonTop2: "top 2",
+    blockButtonPinkieBtn: "pinkie",
+    blockButtonBaseBtn: "base",
+    blockButtonBaseBtn2: "base 2", 
+    blockButtonBaseBtn3: "base 3",
+    blockButtonBaseBtn4: "base 4",
+    blockButtonBaseBtn5: "base 5",
+    blockButtonBaseBtn6: "base 6",
 
     blockPlaySndMessage: "play sound %1",
     blockPlaySndToolTip: "Play a sound",

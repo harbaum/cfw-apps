@@ -3,9 +3,12 @@
 #
 
 from TouchStyle import *
+from qjoystick import QJoystick
 
 PORT = 9002
 CLIENT = ""    # any client
+
+MAX_TEXT_LINES=50           # same as web ui
 
 USER_PROGRAMS = "user"      # directory containing the user programs
 FLOAT_FORMAT = "{0:.3f}"    # limit to three digits to keep the output readable
@@ -139,6 +142,8 @@ class RunThread(QThread):
 
         self.speed = 90  # range 0 .. 100
 
+        self.joystick = None
+
         self.ws_thread = ws_thread  # websocket server thread
         self.ui_queue = ui_queue    # output queue to the local gui
 
@@ -167,7 +172,7 @@ class RunThread(QThread):
                 
         self.motor = [ None, None, None, None ]
         self.mobile = None
-
+ 
         # redirect stdout, stderr info to websocket server.
         # redirect stdout also to the local screen
         sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
@@ -175,6 +180,9 @@ class RunThread(QThread):
 
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
+
+    def setJoystick(self, js):
+        self.joystick = js
 
     def send_highlight(self, id):
         self.ws_thread.send(json.dumps( { "highlight": id } ))
@@ -184,7 +192,7 @@ class RunThread(QThread):
 
     def run(self):
         self.stop_requested = False
-        self.online = False
+        self.sync_open = False
         path = os.path.dirname(os.path.realpath(__file__))
         fname = os.path.join(path, USER_PROGRAMS, os.path.splitext(self.program_name[0])[0] + ".py")
 
@@ -222,11 +230,15 @@ class RunThread(QThread):
                     code_txt = code_txt.replace("textClear(", "wrapper.textClear(");
                     code_txt = code_txt.replace("textPrintColor(", "wrapper.textPrintColor(");
 
+                    functions = [ "jsIsPresent", "jsGetButton", "jsGetAxis" ]
+                    for func in functions:
+                        code_txt = code_txt.replace(func+"(", "wrapper."+func+"(");
+
                     # code = compile(code_txt, "brickly.py", 'exec')
                     # exec(code, globals())
 
                     exec(code_txt, globals())
-                
+
                 except SyntaxError as e:
                     print("Syntax error: " + str(e), file=sys.stderr)
                 except UserInterrupt as e:
@@ -234,6 +246,13 @@ class RunThread(QThread):
                 except:
                     print("Unexpected error: " + str(sys.exc_info()[1]), file=sys.stderr)
 
+                # close a "sync" block which was left open. The TXT doesn't like it 
+                # to be kept open
+                if self.sync_open:
+                    if self.txt:
+                        self.txt.SyncDataEnd();            
+                    self.sync_open = False
+                
             self.done.emit()
             self.send_highlight("none")
 
@@ -277,6 +296,11 @@ class RunThread(QThread):
 
     # custom string conversion
     def str(self, arg):
+        # use custom conversion for booleans
+        if type(arg) is bool:
+            if arg: return QCoreApplication.translate("Logic", "true")
+            else:   return QCoreApplication.translate("Logic", "false")
+
         # use custom conversion for float numbers
         if type(arg) is float:
             if math.isinf(arg):
@@ -293,20 +317,40 @@ class RunThread(QThread):
 
         # make sure floats are converted using our custom conversion
         for i in range(len(argsl)):
-            if type(argsl[i]) is float:
+            if type(argsl[i]) is float or type(argsl[i]) is bool:
                 argsl[i] = self.str(argsl[i])
 
         # todo: don't call print but push data directly into queue
         print(*tuple(argsl), **kwargs)
 
+    # ================================ joystick ===============================
+
+    def jsIsPresent(self):
+        return (self.joystick != None) and (len(self.joystick.joysticks()) > 0)
+
+    def jsGetAxis(self, axis):
+        val = self.joystick.axis(None, axis)
+        if val == None: val = 0
+        return 100.0 * val
+
+    def jsGetButton(self, button):
+        val = self.joystick.button(None, button)
+        if val == None: val = False
+        return val != 0
+
     # ================================== FT IO ================================
 
     def sync(self, begin):
-        if self.txt:
-            if begin:
-                self.txt.SyncDataBegin();
-            else:
-                self.txt.SyncDataEnd();            
+        if begin:
+            if not self.sync_open:
+                if self.txt:
+                    self.txt.SyncDataBegin();
+                self.sync_open = True
+        else:
+            if self.sync_open:
+                if self.txt:
+                    self.txt.SyncDataEnd();            
+                self.sync_open = False
 
     # --------------------------------- motors --------------------------------
 
@@ -367,8 +411,10 @@ class RunThread(QThread):
             if val < 0: val = 0
 
             if self.txt:
-                self.motor[port]['dev'].setDistance(int(self.motor[port]['gear']*val),
-                                                    self.motor[port]['syncto'])
+                impulses = int(self.motor[port]['gear']*val)
+                if impulses < -32768: impulses = -32768
+                if impulses >  32767: impulses =  32767                
+                self.motor[port]['dev'].setDistance(impulses, self.motor[port]['syncto'])
         
         elif(name == 'dir'):
             if val < 0: val = -1
@@ -398,7 +444,11 @@ class RunThread(QThread):
                 
         if self.txt:
             if steps:
-                self.motor[port]['dev'].setDistance(int(self.motor[port]['gear']*steps))
+                impulses = int(self.motor[port]['gear']*steps)
+                if impulses < -32768: impulses = -32768
+                if impulses >  32767: impulses =  32767
+                
+                self.motor[port]['dev'].setDistance(impulses)
                 
             self.motor[port]['dev'].setSpeed(pwm_val)
 
@@ -540,6 +590,10 @@ class RunThread(QThread):
             # mobile robot has 2:1 gear and a wheel diameter of 6cm 
             # -> one wheel rotation == 10cm -> gear/10 impulses per cm
             dist = int(dist * self.mobile['motor_gear'] / self.mobile['cm2rot'])
+            # limit dist to ~47m as FT api doesn't cope with more
+            if dist < -32768: dist = -32768
+            if dist >  32767: dist =  32767
+                
             speed = 512                # full throttle forward
             if dir < 0: speed = -512   # full throttle backward
 
@@ -571,6 +625,9 @@ class RunThread(QThread):
             # mobile robot has 2:1 gear and a wheel diameter of 6cm 
             # and a wheel distance of ~15.5cm
             dist = int(angle * self.mobile['motor_gear'] / self.mobile['deg2rot'])
+            # limit dist to ~47m as FT api doesn't cope with more
+            if dist < -32768: dist = -32768
+            if dist >  32767: dist =  32767
             speed = 512                # full throttle forward
             if dir < 0: speed = -512   # full throttle backward
 
@@ -651,10 +708,9 @@ class RunThread(QThread):
         self.ws_thread.send(json.dumps( { "gui_cmd": "clear" } ))
         self.ui_queue.put( { "cmd": "clear" } )
 
-    def textPrintColor(self, color, str):
-        # self.ws_thread.send(json.dumps( { "gui_cmd": "clear" } ))
-        self.ui_queue.put( { "text_color": [ color, str+"\n" ] } )
-        self.ws_thread.send(json.dumps( { "text_color": [ color, str+"\n" ] } ))
+    def textPrintColor(self, color, msg):
+        self.ui_queue.put( { "text_color": [ color, self.str(msg)+"\n" ] } )
+        self.ws_thread.send(json.dumps( { "text_color": [ color, self.str(msg)+"\n" ] } ))
         
 
     # this function is called from the blockly code itself. This feature has
@@ -737,12 +793,13 @@ class BricklyPushButton(QPushButton):
         return False
 
 # a textedit with overlayed button
-class BricklyTextEdit(QTextEdit):
+class BricklyTextEdit(QPlainTextEdit):
     run = pyqtSignal()
     
     def __init__(self, parent=None):
         QTextEdit.__init__(self, parent)
         self.installEventFilter(self)
+        self.setMaximumBlockCount(MAX_TEXT_LINES)
 
         self.run_but = BricklyPushButton(QCoreApplication.translate("Menu","Run"), self)
         self.run_but.clicked.connect(self.on_run_clicked)
@@ -787,6 +844,9 @@ class Application(TouchApplication):
         self.ws.blockly_code.connect(self.on_blockly_code)      # received blockly code
         self.ws.program_name.connect(self.on_program_name)
 
+        # start joystick monitoring
+        self.joystick = QJoystick(self)
+
         # create the empty main window
         self.w = TouchWindow("Brickly")
 
@@ -820,6 +880,7 @@ class Application(TouchApplication):
         
         # start the run thread executing the blockly code
         self.thread = RunThread(self.ws, self.ui_queue)
+        self.thread.setJoystick(self.joystick)
         self.thread.done.connect(self.on_program_ended)
         self.ws.speed_changed.connect(self.thread.set_speed)
 

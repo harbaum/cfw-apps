@@ -7,6 +7,8 @@ OutputBlocksHUE = 220
 MobileBlocksHUE = 250
 TextBlocksHUE = 350
 
+// --------------------------------------------------------
+
 var block_wait = {
     "type": "wait",
     "message0": MSG['blockWaitMessage'],
@@ -31,6 +33,71 @@ var block_repeat = {
     "colour": Blockly.Blocks.loops.HUE,
     "tooltip": MSG['blockRepeatToolTip']
 };
+
+// --------------------------------------------------------
+// --------------------- Joystick -------------------------
+// --------------------------------------------------------
+
+var block_js_present = {
+  "type": "js_present",
+  "message0": MSG['blockJsPresentMessage'],
+  "output": "Boolean",
+  "colour": InputBlocksHUE,
+  "tooltip": MSG['blockJsPresetToolTip']
+};
+
+Blockly.Python['js_present'] = function(block) {
+    code = 'jsIsPresent()';
+    return [code, Blockly.Python.ORDER_NONE];
+}
+
+var block_js_axis = {
+  "type": "js_axis",
+  "message0": MSG['blockJsAxisMessage'],
+  "args0": [ {
+      "type": "field_dropdown",
+      "name": "axis",
+      "options": [ [ MSG["blockAxisX"],  "x" ],  [ MSG["blockAxisY"],  "y" ],  [ MSG["blockAxisZ"],  "z" ],
+		   [ MSG["blockAxisRx"], "rx" ], [ MSG["blockAxisRy"], "ry" ], [ MSG["blockAxisRz"], "rz" ],
+		   [ MSG["blockAxisHx"], "hat0x" ], [ MSG["blockAxisHy"], "hat0y" ] 
+		 ]
+    } ],
+  "output": "Number",
+  "colour": InputBlocksHUE,
+  "tooltip": MSG['blockJsAxisToolTip']
+};
+
+Blockly.Python['js_axis'] = function(block) {
+    var axis = block.getFieldValue('axis');
+    code = 'jsGetAxis("%1")'.replace('%1', axis);
+    return [code, Blockly.Python.ORDER_NONE];
+}
+
+var block_js_button = {
+  "type": "js_button",
+  "message0": MSG['blockJsButtonMessage'],
+  "args0": [ {
+      "type": "field_dropdown",
+      "name": "button",
+      "options": [ [ MSG["blockButtonTrigger"], "trigger" ], [ MSG["blockButtonThumb"],      "thumb" ], 
+		   [ MSG["blockButtonThumb2"],   "thumb2" ], [ MSG["blockButtonTop"],          "top" ], 
+		   [ MSG["blockButtonTop2"],       "top2" ], [ MSG["blockButtonPinkieBtn"], "pinkie" ],
+		   [ MSG["blockButtonBaseBtn"],    "base" ], [ MSG["blockButtonBaseBtn2"],   "base2" ],
+		   [ MSG["blockButtonBaseBtn3"],  "base3" ], [ MSG["blockButtonBaseBtn4"],   "base4" ],
+		   [ MSG["blockButtonBaseBtn5"],  "base5" ], [ MSG["blockButtonBaseBtn6"],   "base6" ] ]
+    } ],
+  "output": "Boolean",
+  "colour": InputBlocksHUE,
+  "tooltip": MSG['blockJsButtonToolTip']
+};
+
+Blockly.Python['js_button'] = function(block) {
+    var button = block.getFieldValue('button');
+    code = 'jsGetButton("%1")'.replace('%1', button);
+    return [code, Blockly.Python.ORDER_NONE];
+}
+
+// --------------------------------------------------------
 
 var block_pwm_value = {
   "type": "pwm_value",
@@ -551,7 +618,6 @@ var block_text_clear = {
     "tooltip": MSG['blockTextEraseToolTip']
 }
 
-
 // generate python code for custom blocks
 Blockly.Python['start'] = function(block) {
   var code = '# program start\n';
@@ -743,6 +809,12 @@ function custom_blocks_init() {
 	init: function() { this.jsonInit(block_wait); } };
     Blockly.Blocks['repeat'] = {
 	init: function() { this.jsonInit(block_repeat); } };
+    Blockly.Blocks['js_present'] = {
+	init: function() { this.jsonInit(block_js_present); } };
+    Blockly.Blocks['js_axis'] = {
+	init: function() { this.jsonInit(block_js_axis); } };
+    Blockly.Blocks['js_button'] = {
+	init: function() { this.jsonInit(block_js_button); } };
     Blockly.Blocks['output'] = {
 	init: function() { this.jsonInit(block_output); } };
     Blockly.Blocks['io_sync'] = {
