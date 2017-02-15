@@ -3,16 +3,16 @@ name: Brickly
 category: Tools
 author: Till Harbaum
 icon: icon.png
-desc: Graphical development environment based on Google Blockly
-url: https://github.com/harbaum/cfw-apps/tree/master/packages/brickly
+desc: Blockly demo
+url: https://developers.google.com/blockly/
 html: index.html
 exec: brickly_app.py
 managed: yes
 uuid: 1f2d90a3-11e9-4a92-955a-73ffaec0fe71
-version: 1.25
+version: 1.26
 firmware: >=0.9.0
 
 [de]
 name: Brickly
-desc: Grafische Entwicklungsumgebung basierend auf Google Blockly
+desc: Blockly-Demo
 html: index.html?lang=de

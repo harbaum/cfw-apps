@@ -175,8 +175,8 @@ class RunThread(QThread):
  
         # redirect stdout, stderr info to websocket server.
         # redirect stdout also to the local screen
-        sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
-        sys.stderr = io_sink("stderr", self.ws_thread, None)
+        #sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
+        #sys.stderr = io_sink("stderr", self.ws_thread, None)
 
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
@@ -755,7 +755,7 @@ class ProgramListWidget(QListWidget):
         self.setCurrentItem(selected)
 
     def htmlDecode(self, str):
-        return str.replace("&quot;/", '"').replace("&#39;", "'").replace("&lt;", '<').replace("&gt;", '>').replace("&amp;", '&');
+        return str.replace("&quot;", '"').replace("&#39;", "'").replace("&lt;", '<').replace("&gt;", '>').replace("&amp;", '&');
     
     def onItemClicked(self, item):
         prg = item.data(Qt.UserRole)
@@ -1027,7 +1027,10 @@ class Application(TouchApplication):
 
     def set_program(self, prg):
         self.program_name = prg
-        self.w.titlebar.setText(prg[1])
+
+        # the label in the title bar seems to decode html. But it does not
+        # decode &quot;, &amp; and &#39; ... 
+        self.w.titlebar.setText(prg[1].replace("&quot;", '"').replace("&amp;", '&').replace("&#39;", "'"))
         
     def on_program_changed(self, prg):
         self.set_program(prg)

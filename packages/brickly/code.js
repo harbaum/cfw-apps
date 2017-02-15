@@ -231,10 +231,11 @@ function menu_create_entry(a) {
     if(a[0] == Code.program_name[0]) 
 	// if this entry is for the current program then make it inactive and hightlight it
 	cl = 'class="dropdown_selected dropdown_not_active" '
-    else
-	// othewise make it trigger an event
-	ar = 'onclick="menu_file_load(\'' + a[0] + '\',\'' + a[1] + '\')"'
-
+    else {
+	// othewise make it trigger an event (escape ticks in the program name)
+	ar = 'onclick="menu_file_load(\'' + a[0] + '\',\'' + a[1].replace("\&#39;", "\\\&#39;") + '\')"'
+    }
+    
     // make sure name doesn't wrap
     var name = a[1].replace(/ /g, '&nbsp;');
     return '<td align="center"><a ' +  cl + ar + '>' + name + "</a></td>";
