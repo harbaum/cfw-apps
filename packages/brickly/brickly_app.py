@@ -175,8 +175,8 @@ class RunThread(QThread):
  
         # redirect stdout, stderr info to websocket server.
         # redirect stdout also to the local screen
-        #sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
-        #sys.stderr = io_sink("stderr", self.ws_thread, None)
+        sys.stdout = io_sink("stdout", self.ws_thread, self.ui_queue)
+        sys.stderr = io_sink("stderr", self.ws_thread, None)
 
         if not self.txt:
             print("TXT init failed", file=sys.stderr)
