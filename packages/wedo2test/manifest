@@ -1,0 +1,13 @@
+[app]
+name: WeDo 2.0
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: WeDo 2.0 test and demo application
+exec: wedo2test.py
+managed: yes
+uuid: a15d0949-c521-4646-8dc5-93f453556beb
+
+[de]
+name: WeDo 2.0
+desc: WeDo 2.0 Test- und Demoapplikation

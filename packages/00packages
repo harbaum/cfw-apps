@@ -106,6 +106,18 @@ uuid: 3682679c-9438-4516-a528-83de5e27e5e5
 version: 1.0.1
 firmware: >=0.9.0
 
+[wedo2test]
+name: WeDo 2.0
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: WeDo 2.0 test and demo application
+exec: wedo2test.py
+managed: yes
+uuid: a15d0949-c521-4646-8dc5-93f453556beb
+name_de: WeDo 2.0
+desc_de: WeDo 2.0 Test- und Demoapplikation
+
 [wedotest]
 name: WeDo
 category: Tests
