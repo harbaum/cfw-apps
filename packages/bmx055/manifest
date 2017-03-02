@@ -1,0 +1,11 @@
+[app]
+name: BMX055
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Test app for the BMX055 orientation sensor
+exec: bmx055.py
+managed: yes
+uuid: dd485f5f-3575-4be6-9339-26c2207002c8
+version: 1.3
+firmware: 0.9
