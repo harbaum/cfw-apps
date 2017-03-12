@@ -7,6 +7,10 @@ import pygatt, binascii
 
 from TouchStyle import *
 
+# this is the UUID the WeDo hub sends with it's advertisement
+# and which we use to identify it
+WEDO_UUID_ADV="00001523-1212-EFDE-1523-785FEABCD123"
+
 # these are the UUIDs of the services we are going to use
 WEDO_UUID_3A="00001563-1212-efde-1523-785feabcd123"
 WEDO_UUID_3D="00001565-1212-efde-1523-785feabcd123"
@@ -50,15 +54,16 @@ class ExecThread(QThread):
         pass
 
 class HciTool(ExecThread):
-    scan_result = pyqtSignal(str, str)
+    scan_result = pyqtSignal(str)
 
     def __init__(self, cmd, sudo = False):
         self.sudo = sudo
+        self.rx_buf = ""
         hcitool_cmd = []
         if sudo: hcitool_cmd.append("sudo")
 
         hcitool_cmd.append("hcitool")
-        hcitool_cmd.append(cmd)
+        hcitool_cmd += cmd
         super(HciTool,self).__init__(hcitool_cmd)
 
     def stop(self):
@@ -69,42 +74,22 @@ class HciTool(ExecThread):
                 self.proc.terminate()
 
     def output(self, str):
-        lines = io.StringIO(str.strip())
-        for l in lines:
-            p = l.split()
-            # at least two parts and the first one has the length of
-            # a 17 character mac address
-            if len(p) >=2 and len(p[0]) == 17:
-                self.scan_result.emit(l.split()[0],' '.join(l.split()[1:]))
+        # maintain an output buffer and search for complete strings there
+        self.rx_buf += str
 
-class DeviceListWidget(QListWidget):
-    device_select = pyqtSignal(str)
-    
-    def __init__(self, parent=None):
-        super(DeviceListWidget, self).__init__(parent)
+        lines = self.rx_buf.split('\n')
+        # at least one full line?
+        if len(lines) > 1:
+            # keep the unterminated last line
+            self.rx_buf = lines.pop()
+            for l in lines:
+                p = l.split()
 
-        self.setUniformItemSizes(True)
-        self.setViewMode(QListView.ListMode)
-        self.setMovement(QListView.Static)
-        self.setWordWrap(False)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # react on clicks
-        self.itemClicked.connect(self.onItemClicked)
-
-    def renameDevice(self, name, addr):
-        for i in range(self.count()):
-            item = self.item(i)
-            if item.data(Qt.UserRole) == addr:
-                item.setText(name)
-        
-    def addDevice(self, name, addr):
-        item = QListWidgetItem(name)
-        item.setData(Qt.UserRole, addr)
-        self.addItem(item)
-
-    def onItemClicked(self, item):
-        self.device_select.emit(item.data(Qt.UserRole))
+                # result must consist of three parts, the first one must be a 17 bytes address
+                # followed by "UUID128" and the UUID advertised by a wedo hub
+                if len(p) == 3 and len(p[0]) == 17 and p[1] == "UUID128" and p[2] == WEDO_UUID_ADV:
+                    self.scan_result.emit(l.split()[0])
+                    
 
 class ScanWidget(QWidget):
     device_select = pyqtSignal(str)
@@ -116,20 +101,16 @@ class ScanWidget(QWidget):
         vbox = QVBoxLayout()
         vbox.setSpacing(0)
 
-        lbl = QLabel(QCoreApplication.translate("Scanner", "searching..."))
+        lbl = QLabel(QCoreApplication.translate("Scanner", "Searching for WeDo 2.0 Hub.\n\nPlease press its green button to make it discoverable!"))
+
+        lbl.setWordWrap(True)
         lbl.setObjectName("smalllabel")
         lbl.setAlignment(Qt.AlignCenter)
         vbox.addWidget(lbl)
 
-        self.devlist_w = DeviceListWidget(self)
-        self.devlist_w.device_select.connect(self.on_device_selected)
-        vbox.addWidget(self.devlist_w)
         self.setLayout(vbox)
 
-        self.devices = { }
-
-        #self.hcitool = HciTool("scan")        # scan for classic bluetooth devices
-        self.hcitool = HciTool("lescan", True)  # scan for le devices
+        self.hcitool = HciTool([ "lescan" ], True)  # scan for le devices
         self.hcitool.scan_result.connect(self.on_hcitool_scan_result)
         self.hcitool.finished.connect(self.on_hcitool_result)
         self.hcitool.start()
@@ -142,20 +123,8 @@ class ScanWidget(QWidget):
             self.hcitool.stop()
             self.hcitool = None
         
-    def on_device_selected(self, addr):
-        self.device_select.emit(addr)
-        self.stop()
-        
-    def on_hcitool_scan_result(self, addr, name):
-        # report any new address and any address that changed from
-        # (unknown) or n/a to something else
-        if not addr in self.devices:
-            self.devices[addr] = name
-            self.devlist_w.addDevice(name, addr)
-        elif ((self.devices[addr] == "(unknown)" and name != "(unknown)") or
-              (self.devices[addr] == "n/a" and name != "n/a")):
-            self.devices[addr] = name
-            self.devlist_w.renameDevice(name, addr)
+    def on_hcitool_scan_result(self, addr):
+        self.device_select.emit(addr)        
         
     def on_hcitool_result(self, ok):
         # check if the command failed

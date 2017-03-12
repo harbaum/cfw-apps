@@ -40,23 +40,6 @@ uuid: dd485f5f-3575-4be6-9339-26c2207002c8
 version: 1.3
 firmware: 0.9
 
-[brickly]
-name: Brickly
-category: Tools
-author: Till Harbaum
-icon: icon.png
-desc: Blockly demo
-url: https://developers.google.com/blockly/
-html: index.html
-exec: brickly_app.py
-managed: yes
-uuid: 1f2d90a3-11e9-4a92-955a-73ffaec0fe71
-version: 1.27
-firmware: >=0.9.0
-name_de: Brickly
-desc_de: Blockly-Demo
-html_de: index.html?lang=de
-
 [calc]
 name: Calc
 category: Tools
@@ -127,6 +110,7 @@ desc: WeDo 2.0 test and demo application
 exec: wedo2test.py
 managed: yes
 uuid: a15d0949-c521-4646-8dc5-93f453556beb
+version: 1.0
 name_de: WeDo 2.0
 desc_de: WeDo 2.0 Test- und Demoapplikation
 
