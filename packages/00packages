@@ -40,6 +40,19 @@ uuid: dd485f5f-3575-4be6-9339-26c2207002c8
 version: 1.3
 firmware: 0.9
 
+[bt_smart_demo]
+name: BT smart
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: BT smart controller test
+exec: bt_smart_demo.py
+managed: yes
+uuid: b4555d72-6e40-4388-9689-eceebfd34f67
+version: 1.0
+name_de: BT-Smart
+desc_de: BT-Smart-Controller-Test
+
 [calc]
 name: Calc
 category: Tools

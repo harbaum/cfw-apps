@@ -1,0 +1,14 @@
+[app]
+name: BT smart
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: BT smart controller test
+exec: bt_smart_demo.py
+managed: yes
+uuid: b4555d72-6e40-4388-9689-eceebfd34f67
+version: 1.0
+
+[de]
+name: BT-Smart
+desc: BT-Smart-Controller-Test
