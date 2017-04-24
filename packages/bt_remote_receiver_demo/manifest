@@ -1,0 +1,14 @@
+[app]
+name: BT remote
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: BT remote receiver demo
+exec: bt_remote_receiver_demo.py
+managed: yes
+uuid: a59f0f24-771c-4015-b5cb-a4ad0e724a73
+version: 1.1
+
+[de]
+name: BT-Remote
+desc: BT-Remote-Empfänger-Demo

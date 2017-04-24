@@ -1,20 +1,6 @@
 ; list of packages
 ; this file contains all manifests
 
-[3dprt]
-name: 3Dprint
-category: Tools
-author: Till Harbaum &lt;till@harbaum.org&gt;
-icon: icon.png
-desc: 3D printer driver app
-exec: 3dprt.py
-managed: yes
-set: 536624 3D-Printer
-model: 3D-Printer
-uuid: dd8a2020-10f7-4d9f-ad2f-2177ce6c60ff
-version: 1.0
-firmware: >=0.9.0
-
 [app_tutorial_1]
 name: Test
 category: Tests
@@ -39,6 +25,19 @@ managed: yes
 uuid: dd485f5f-3575-4be6-9339-26c2207002c8
 version: 1.3
 firmware: 0.9
+
+[bt_remote_receiver_demo]
+name: BT remote
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: BT remote receiver demo
+exec: bt_remote_receiver_demo.py
+managed: yes
+uuid: a59f0f24-771c-4015-b5cb-a4ad0e724a73
+version: 1.1
+name_de: BT-Remote
+desc_de: BT-Remote-Empfänger-Demo
 
 [bt_smart_demo]
 name: BT smart
