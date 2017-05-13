@@ -1,0 +1,13 @@
+[app]
+name: Pinball
+category: Models
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Pinball
+exec: pinball.py
+set: 516186 ROBO TX ElectroPneumatic
+model: Pinball machine
+managed: yes
+uuid: 28dd2ddd-76b1-431a-9669-8abca2af313f
+version: 0.2
+firmware: >=0.9.0, <0.9.3
