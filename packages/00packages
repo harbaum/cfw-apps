@@ -14,6 +14,20 @@ uuid: 191fe5a6-313b-4083-af65-d1ad7fd6d281
 version: 1.0
 firmware: >=0.9.0
 
+[app_tutorial_3]
+name: Tut_3
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Tutorial No 3
+exec: tut3.py
+managed: yes
+set: 524328 ROBOTICS TXT Discovery Set
+model: Pedestrian Light
+uuid: 55238f32-e0f3-4e55-9a02-5f901a19d3e0
+version: 1.0
+firmware: >=0.9.0
+
 [bmx055]
 name: BMX055
 category: Tests
@@ -90,6 +104,18 @@ uuid: 4fdef96d-4a27-4209-85c6-7786110d9f2f
 version: 1.0
 firmware: >=0.9.0
 
+[cube]
+name: Cube
+category: Models
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Rubiks Cube solver
+exec: cube.py
+managed: yes
+uuid: be743ea4-187b-43d8-8f7b-1779fa589bec
+version: 1.3
+firmware: >=0.9.0
+
 [jstest]
 name: Joystick
 category: Tests
@@ -100,6 +126,32 @@ exec: jstest.py
 managed: yes
 uuid: 74a6287b-f6d7-45bd-a467-208052a4a29b
 version: 1.0
+firmware: >=0.9.0
+
+[mp3_player]
+name: MP3-Player
+category: Tests
+author: Till Harbaum
+icon: icon.png
+desc: MP3-Player, demo music: http://www.bensound.com
+exec: mp3_player.py
+managed: yes
+uuid: 44bd8baa-2de3-4ba5-b26e-2db41994a212
+version: 1.0
+firmware: >=0.9.0
+
+[pinball]
+name: Pinball
+category: Models
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: Pinball
+exec: pinball.py
+set: 516186 ROBO TX ElectroPneumatic
+model: Pinball machine
+managed: yes
+uuid: 28dd2ddd-76b1-431a-9669-8abca2af313f
+version: 0.2
 firmware: >=0.9.0
 
 [robolttest]
