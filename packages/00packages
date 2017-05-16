@@ -1,6 +1,19 @@
 ; list of packages
 ; this file contains all manifests
 
+[4play]
+name: 4Play
+category: Games
+icon: icon.png
+desc: Connect four
+exec: 4play.py
+managed: yes
+uuid: 35c42632-6515-48bc-80bc-97ae76b14ca5
+version: 1.0
+firmware: >=0.9
+name_de: 4Spiel
+desc_de: Vier gewinnt
+
 [app_tutorial_1]
 name: Test
 category: Tests
