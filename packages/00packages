@@ -129,6 +129,17 @@ uuid: be743ea4-187b-43d8-8f7b-1779fa589bec
 version: 1.3
 firmware: >=0.9.0
 
+[idas_ampel]
+name: Idas Ampel
+category: Tests
+icon: icon.png
+desc: Idas Schleichtierampel
+exec: idas_ampel.py
+managed: yes
+uuid: 368f15ca-9907-4096-942c-0eebd7b1695d
+version: 1.0
+firmware: >=0.9.0
+
 [jstest]
 name: Joystick
 category: Tests
@@ -176,6 +187,18 @@ exec: robolttest.py
 managed: yes
 uuid: 3682679c-9438-4516-a528-83de5e27e5e5
 version: 1.0.1
+firmware: >=0.9.0
+
+[thermometer]
+name: Thermo
+category: Tools
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: A simple thermometer app using the TXTs temperature sensor on I1
+exec: thermometer.py
+managed: yes
+uuid: d23829ea-326a-4f85-8627-169b0dc56669
+version: 1.0
 firmware: >=0.9.0
 
 [wedo2test]
