@@ -15,11 +15,7 @@ You can install apps from this repository either through the app store or via we
 The easiest way to install these apps is to use the app store. You need to enter the location of
 this repository into the store app as depicted here:
 
-![New](media/store.png)
-
-![Enter new](media/store_repo.png)
-
-![Select](media/store_tills.png)
+![New](media/store.png) ![Enter new](media/store_repo.png) ![Select](media/store_tills.png)
 
 You only need to do this once. Afterwards you can download and install these apps by just one
 click.
