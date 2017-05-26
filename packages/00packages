@@ -53,6 +53,22 @@ uuid: dd485f5f-3575-4be6-9339-26c2207002c8
 version: 1.3
 firmware: 0.9
 
+[boa]
+name: Boa
+category: Tools
+author: Till Harbaum
+icon: icon.png
+desc: Python based web programming environment. Boa only works on the TX-Pi, not on the TXT!
+html: index.html
+exec: boa.py
+managed: yes
+uuid: 6de6b33-edf3-435c-a839-86e8a632ddf
+version: 0.0.1
+firmware: >=0.9.0
+name_de: Boa
+desc_de: Python-basierte Web-Programmierumgebung. Boa läuft nur auf dem TX-PI, nicht auf dem TXT!
+html_de: index.html?lang=de
+
 [bt_remote_receiver_demo]
 name: BT remote
 category: Demos

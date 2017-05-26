@@ -1,0 +1,18 @@
+* {
+    margin: 0px;
+    padding: 0px;
+}
+
+body {
+/*    background-color: rgb(0, 0, 0);*/
+}
+
+#interactive {
+    resize: none;
+    margin: 0px 0px 0px 0px;
+    border: 1px solid black;
+    outline: none;
+    font-family: Monospace;
+    width: 99%;
+    overflow: hidden;
+}

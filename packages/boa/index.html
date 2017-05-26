@@ -1,0 +1,44 @@
+<!doctype html>
+<!--https://github.com/codemirror/CodeMirror-->
+<html>
+  <head>
+    <title>Boa</title>
+    <meta charset="utf-8"/>
+
+    <link rel="stylesheet" href="boa.css">
+
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="cm/codemirror.css">
+    <script src="cm/codemirror.js"></script>
+    <script src="cm/python.js"></script>
+    <script src="boa.js"></script>
+    
+    <!-- border around code mirror -->
+    <style type="text/css">.CodeMirror {border: 1px solid black; }</style>
+
+    <!-- noVNC -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script src="vnc/util.js"></script>
+    <script src="vnc/webutil.js"></script>
+  </head>
+
+  <body>
+    <button id="run" onclick="run()">Run</button>
+
+    <table width="100%"><tr><td>
+	  <textarea id="code" name="code"></textarea>
+	</td><td width="240">
+	  <canvas id="noVNC_canvas">
+            Canvas not supported.
+	  </canvas>
+	</td>
+      </tr>
+    </table>
+    
+    <textarea id="interactive" rows="10" cols="50" width="100%" onpaste="paste(event);" onkeypress="keyPress(event);"/>
+
+  </body>    
+</html>
