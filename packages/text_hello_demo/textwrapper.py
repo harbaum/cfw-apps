@@ -74,6 +74,9 @@ class FtcGuiApplication(TouchApplication):
 
         path = os.path.dirname(os.path.realpath(__file__))
 
+        # change into current directory before running
+        os.chdir(os.path.dirname(os.path.realpath(__file__)))
+ 
         # Search for python snippet
         program = None
         files = [f for f in os.listdir(path) if os.path.isfile(f)]
