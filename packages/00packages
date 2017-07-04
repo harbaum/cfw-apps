@@ -205,6 +205,17 @@ uuid: 3682679c-9438-4516-a528-83de5e27e5e5
 version: 1.0.1
 firmware: >=0.9.0
 
+[text_hello_demo]
+name: Hello
+category: Demos
+icon: icon.png
+desc: A hello world text mode app
+exec: textwrapper.py
+managed: yes
+uuid: 300a6d0c-a13d-4b43-867f-4832cc98aa7c
+version: 1.0
+firmware: >=0.9
+
 [thermometer]
 name: Thermo
 category: Tools
