@@ -68,6 +68,16 @@ class TextWidget(QPlainTextEdit):
             if type(e) is str:
                 self.append(e)
 
+class TextTouchWindow(TouchWindow):
+    closed = pyqtSignal()
+    
+    def __init__(self, title):
+        TouchWindow.__init__(self, title)
+                
+    def close(self):
+        self.closed.emit()
+        TouchWindow.close(self)
+ 
 class FtcGuiApplication(TouchApplication):
     def __init__(self, args):
         TouchApplication.__init__(self, args)
@@ -86,7 +96,8 @@ class FtcGuiApplication(TouchApplication):
                     program = f
                     break
         
-        self.w = TouchWindow(program)
+        self.w = TextTouchWindow(program)
+        self.w.closed.connect(self.on_close)
 
         self.text = TextWidget(self.w)
         self.w.setCentralWidget(self.text)
@@ -111,6 +122,11 @@ class FtcGuiApplication(TouchApplication):
             return False
 
         return self.app_process.poll() == None
+    
+    def on_close(self):
+        if self.app_is_running:
+            self.app_process.terminate()
+            self.app_process.wait()
         
     def on_log_timer(self):
         # first read whatever the process may have written
@@ -130,6 +146,6 @@ class FtcGuiApplication(TouchApplication):
 
                 # remove timer
                 self.log_timer = None
-            
+                
 if __name__ == "__main__":
     FtcGuiApplication(sys.argv)
