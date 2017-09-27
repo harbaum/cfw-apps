@@ -194,6 +194,18 @@ uuid: 28dd2ddd-76b1-431a-9669-8abca2af313f
 version: 0.2
 firmware: >=0.9.0
 
+[rfid]
+name: RFID
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: RC522 RFID smart card reader demo
+exec: rfid.py
+managed: yes
+uuid: 7ecd1e3a-4105-4951-89be-4e356c1b2426
+version: 1.0
+firmware: 0.9
+
 [robolttest]
 name: RoboLT
 category: Tests

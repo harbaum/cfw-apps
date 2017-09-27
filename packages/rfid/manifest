@@ -1,0 +1,11 @@
+[app]
+name: RFID
+category: Demos
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: RC522 RFID smart card reader demo
+exec: rfid.py
+managed: yes
+uuid: 7ecd1e3a-4105-4951-89be-4e356c1b2426
+version: 1.0
+firmware: 0.9
