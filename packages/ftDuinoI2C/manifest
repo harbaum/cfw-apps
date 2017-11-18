@@ -1,0 +1,11 @@
+[app]
+name: ftDuino I2C
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: ftDuino I2C interface test
+exec: ftDuinoI2C.py
+managed: yes
+uuid: d784e533-c3a2-49ae-8980-45dcbc711cfa
+version: 1.3
+firmware: 0.9
