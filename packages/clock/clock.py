@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+
 import sys, os
-from TxtStyle import *
+from TouchStyle import *
 
 class AnalogClock(QWidget):
 
@@ -37,6 +38,13 @@ class AnalogClock(QWidget):
         self.hourColor = QColor(255,255,255)
         self.minuteColor = QColor(255, 255, 255, 192)
 
+        qsp = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        qsp.setHeightForWidth(True)
+        self.setSizePolicy(qsp)
+
+    def heightForWidth(self,w):
+        return w
+
     def paintEvent(self, event):
 
         side = min(self.width(), self.height())
@@ -58,7 +66,7 @@ class AnalogClock(QWidget):
         painter.drawConvexPolygon(self.hourHand)
         painter.restore()
 
-        painter.setPen(self.hourColor)
+        painter.setPen(QPen(self.minuteColor, 1.5))
 
         for i in range(0, 12):
             painter.drawLine(88, 0, 96, 0)
@@ -72,7 +80,7 @@ class AnalogClock(QWidget):
         painter.drawConvexPolygon(self.minuteHand)
         painter.restore()
 
-        painter.setPen(QPen(self.minuteColor))
+        painter.setPen(QPen(self.minuteColor, 1.5))
 
         for j in range(0, 60):
             if (j % 5) != 0:
@@ -80,7 +88,7 @@ class AnalogClock(QWidget):
             painter.rotate(6.0)
 
         painter.rotate(6.0 * time.second())
-        painter.setPen(QPen(self.minuteColor))
+        painter.setPen(QPen(self.minuteColor, 1.5))
         painter.drawLine(0, 0, 80, 0)
 
         painter.end()
@@ -119,16 +127,41 @@ class AnalogClock(QWidget):
     # in this case, getter, setter and resetter methods.
     timeZone = pyqtProperty(int, getTimeZone, setTimeZone, resetTimeZone)
 
-class FtcGuiApplication(TxtApplication):
+class FtcGuiApplication(TouchApplication):
     def __init__(self, args):
-        TxtApplication.__init__(self, args)
+        TouchApplication.__init__(self, args)
 
         # create the empty main window
-        self.w = TxtWindow("Clock")
-        self.w.setCentralWidget(AnalogClock())
+        self.w = TouchWindow("Clock")
+
+        self.vbox = QVBoxLayout()
+        self.vbox.addStretch()
+
+        self.clock = AnalogClock()
+        self.clock.timeChanged.connect(self.updateDate)
+        self.vbox.addWidget(self.clock)
+
+        self.vbox.addStretch()
+
+        self.date = QLabel()
+        self.date.setObjectName("smalllabel")
+        self.date.setAlignment(Qt.AlignCenter)
+        self.vbox.addWidget(self.date)
+        self.date_str = None
+        self.updateDate()
+
+        self.vbox.addStretch()
+        self.w.centralWidget.setLayout(self.vbox)
+
         self.w.show() 
 
         self.exec_()        
- 
+
+    def updateDate(self):
+        str = QDate.currentDate().toString()
+        if self.date_str != str:
+            self.date.setText(str)
+            self.date_str = str
+
 if __name__ == "__main__":
     FtcGuiApplication(sys.argv)
