@@ -19,6 +19,8 @@ class AppListWidget(QListWidget):
         self.setUniformItemSizes(True)
         self.setViewMode(QListView.ListMode)
         self.setMovement(QListView.Static)
+        self.setIconSize(QSize(32,32))
+        self.setSortingEnabled(True)
         self.parent = parent
 
         # scan for installed apps
@@ -40,8 +42,10 @@ class AppListWidget(QListWidget):
                 manifest.read_file(open(manifestfile, "r", encoding="utf8"))
 
                 if manifest.has_option('app', 'name') and manifest.has_option('app', 'icon'):
-                    item = QListWidgetItem(manifest.get('app', 'name'))
-                    item.setData(Qt.UserRole, os.path.join(a, manifest.get('app', 'icon')))
+                    icon_path = os.path.join(a, manifest.get('app', 'icon'))
+                    icon = QIcon(os.path.join(USERAPPBASE, icon_path))
+                    item = QListWidgetItem(icon, manifest.get('app', 'name'))
+                    item.setData(Qt.UserRole, icon_path)
                     self.addItem(item)
 
     def onItemClicked(self, item):
