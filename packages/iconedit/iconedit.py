@@ -7,8 +7,9 @@ from TxtStyle import *
 
 # make sure all file access happens relative to this script
 BASE = os.path.dirname(os.path.realpath(__file__))
-APPBASE = os.path.dirname(os.path.dirname(BASE))
-USERAPPBASE = os.path.join(APPBASE, "user")
+USERAPPBASE = os.path.dirname(BASE)
+print("BASE", BASE)
+print("USERAPPBASE", USERAPPBASE)
 
 class AppListWidget(QListWidget):
     selected = pyqtSignal(str)
@@ -277,7 +278,10 @@ class PaintWidget(QWidget):
         
     def load(self,name):
         img = QImage()
-        img.load(os.path.join(USERAPPBASE, name))
+        if os.path.isabs(name):
+            img.load(name)
+        else:
+            img.load(os.path.join(USERAPPBASE, name))
         img = img.convertToFormat(QImage.Format_ARGB32);
         if img and img.width() and img.width() == img.height():
             self.filename = name
@@ -570,7 +574,7 @@ class FtcGuiApplication(TxtApplication):
         self.paintWidget = PaintWidget()
         self.paintWidget.setGrid(self.grid)
         self.paintWidget.setPen(self.pen)
-        self.paintWidget.load(os.path.join("iconedit", "icon.png"))
+        self.paintWidget.load(os.path.join(BASE, "icon.png"))
 
         # connect widgets
         self.iconBar.gridChanged.connect(self.paintWidget.setGrid)
