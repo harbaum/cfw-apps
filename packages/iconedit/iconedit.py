@@ -196,7 +196,7 @@ class IconBar(QWidget):
         def __init__(self, name, parent = None):
             QPushButton.__init__(self, None, parent)
             self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            pix = QPixmap(os.path.join(BASE, name + ".svg"))
+            pix = QPixmap(os.path.join(BASE, name + ".png"))
             icn = QIcon(pix)
             self.setIcon(icn)
             self.setIconSize(pix.size())
