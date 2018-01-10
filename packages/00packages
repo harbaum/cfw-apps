@@ -169,6 +169,17 @@ uuid: d784e533-c3a2-49ae-8980-45dcbc711cfa
 version: 1.3
 firmware: 0.9
 
+[iconedit]
+name: IconEdit
+category: Tools
+icon: icon.png
+desc: App icon editor
+exec: iconedit.py
+managed: yes
+uuid: 775af168-608a-402c-bab0-07b95d2135f7
+version: 1.0
+firmware: 0.9
+
 [idas_ampel]
 name: Idas Ampel
 category: Tests
