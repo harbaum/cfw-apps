@@ -124,7 +124,7 @@ class FtcGuiApplication(TouchApplication):
         return self.app_process.poll() == None
     
     def on_close(self):
-        if self.app_is_running:
+        if self.app_is_running():
             self.app_process.terminate()
             self.app_process.wait()
         
