@@ -36,6 +36,9 @@ class TextWidget(QPlainTextEdit):
     def delete(self):
         self.textCursor().deletePreviousChar()
         
+    def clear(self):
+        self.setPlainText("")
+    
     def append(self, text, color=None):
         pstr = ""
         for c in text:
