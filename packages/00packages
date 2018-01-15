@@ -157,6 +157,17 @@ uuid: be743ea4-187b-43d8-8f7b-1779fa589bec
 version: 1.3
 firmware: >=0.9.0
 
+[face]
+name: Face
+category: Demo
+icon: icon.png
+desc: Face detection demo
+exec: face.py
+managed: yes
+uuid: 5b01e3d3-fe0b-43fb-9599-44c63f924343
+version: 1.0
+firmware: 0.9
+
 [ftDuinoI2C]
 name: ftDuino I2C
 category: Tests

@@ -1,0 +1,10 @@
+[app]
+name: Face
+category: Demo
+icon: icon.png
+desc: Face detection demo
+exec: face.py
+managed: yes
+uuid: 5b01e3d3-fe0b-43fb-9599-44c63f924343
+version: 1.0
+firmware: 0.9
