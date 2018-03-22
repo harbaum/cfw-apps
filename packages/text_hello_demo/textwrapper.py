@@ -4,73 +4,160 @@
 import sys, queue, pty, subprocess, select, os
 from TouchStyle import *
 
-MAX_TEXT_LINES=50
+# a fixed size text widget
+class TextWidget(QWidget):
+    class Content(object):
+        def __init__(self):
+            self.w = 0
+            self.h = 0
+            self.lines = []
+            self.cursor = [ 0, 0 ]
 
-class TextWidget(QPlainTextEdit):
-    def __init__(self, parent=None):
-        QTextEdit.__init__(self, parent)
-        self.setMaximumBlockCount(MAX_TEXT_LINES)
-        self.setReadOnly(True)
-        style = "QPlainTextEdit { font: 12px; }"
-        self.setStyleSheet(style)
-    
-        # a timer to read the ui output queue and to update
-        # the screen
-        self.ui_queue = queue.Queue()
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.on_timer)
-        self.timer.start(10)
-
-    def append_str(self, text, color=None):
-        self.moveCursor(QTextCursor.End)
-        if not hasattr(self, 'tf') or not self.tf:
-            self.tf = self.currentCharFormat()
-            self.tf.setFontWeight(QFont.Bold);
-        if color:
-            tf = self.currentCharFormat()
-            tf.setForeground(QBrush(QColor(color)))
-            self.textCursor().insertText(text, tf);
-        else:
-            self.textCursor().insertText(text, self.tf);
+            # start with a dummy 80x25 buffer so no
+            # input gets lost
+            self.resize(80, 25)
             
-    def delete(self):
-        self.textCursor().deletePreviousChar()
+        def resize(self, w, h):
+            # print("RESIZE", w, h)
+
+            # expand existing lines if requied
+            if self.w < w:
+                for li in range(len(self.lines)):
+                    self.lines[li] = self.lines[li] + [' ']*(w-self.w)
+
+            # truncate existing lines if required
+            if self.w > w:
+                for li in range(len(self.lines)):
+                    self.lines[li] = self.lines[li][:w]
+                    
+            # append empty lines if requied
+            if self.h < h:
+                for l in range(h - self.h):
+                    self.lines.append( [' ']*w)
+
+            # remove lines on top if required
+            # TODO: make this depending on cursor position!
+            #       first remove lines below the cursor
+            if self.h > h:
+                remove = self.h - h
+                hbelow = self.h - self.cursor[1] - 1
+                # print("Remove: ", remove, "Lines below cursor:", hbelow)
+
+                # can the whole request be satisfied by lines below cursor?
+                if remove <= hbelow:
+                    # yes, just shrink
+                    self.lines = self.lines[:h]
+                else:
+                    # no, remove as many as possible below, rest above
+                    if hbelow: self.lines = self.lines[:-hbelow]
+                    self.lines = self.lines[-h:]
+
+                    # move cursor up by the number of lines that have
+                    # been removed above it
+                    # print("Cursor y", self.cursor[1], "->", self.cursor[1] - remove)
+                    self.cursor[1] = self.cursor[1] - remove
+            
+            self.w = w
+            self.h = h
+
+        def scrollUp(self):
+            self.lines = self.lines[1:]
+            self.lines.append( [' ']*self.w)
+            
+        def cursor_right(self):
+            self.cursor[0] = self.cursor[0] + 1
+            if self.cursor[0] >= self.w:
+                self.cursor[0] = 0
+                self.cursor_down()
         
-    def clear(self):
-        self.setPlainText("")
-    
-    def append(self, text, color=None):
-        pstr = ""
+        def cursor_down(self):
+            self.cursor[1] = self.cursor[1] + 1
+            if(self.cursor[1] >= self.h):
+                self.scrollUp()
+                self.cursor[1] = self.h - 1
+        
+        def cursor_return(self):
+            self.cursor[0] = 0
+
+        def write(self, c):
+            # cursor position may already be out of bound if font size
+            # has been changed
+            if self.cursor[0] < self.w and self.cursor[1] < self.h:
+                self.lines[self.cursor[1]][self.cursor[0]] = c;
+                    
+            self.cursor_right()
+            
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent)
+        qsp = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setSizePolicy(qsp)
+        self.content = self.Content()
+
+        self.setFont(8)
+
+    def setFont(self, size):
+        self.fontSize = size
+        
+        self.font = QFont("Monospace");
+        self.font.setStyleHint(QFont.TypeWriter);
+        self.font.setPointSize(self.fontSize)
+
+        metrics = QFontMetrics(self.font)
+        self.cw = metrics.width("M")
+        self.ch = metrics.height()
+
+        # todo: change buffer size
+        self.repaint()
+        
+    def paintEvent(self, event):
+        self.w = int(self.width()/self.cw)
+        self.h = int(self.height()/self.ch)
+        
+        if ((self.content.w != self.w) or
+            (self.content.h != self.h)):
+            # widget size has changed, reset buffer
+            self.content.resize(self.w, self.h)
+            
+        painter = QPainter()
+        painter.begin(self)
+
+        # optional set background
+        # painter.fillRect(event.rect(), QColor("black"));
+             
+        painter.setFont(self.font)
+
+        for y in range(self.content.h):
+            for x in range(self.content.w):
+                if self.content.lines[y][x] != ' ':
+                    box = QRect(x*self.cw, y*self.ch, self.cw, self.ch)
+                    painter.drawText(box, Qt.AlignLeft, self.content.lines[y][x]);
+
+        # draw cursor
+        box = QRect(self.content.cursor[0]*self.cw,
+                    self.content.cursor[1]*self.ch, self.cw-1, self.ch-1)
+
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor("white"))
+        painter.drawRect(box);
+                
+        painter.end()
+
+    def resizeFont(self, step):
+        if self.fontSize + step:
+            self.setFont(self.fontSize + step)
+        
+    def write(self, text):
+        # process all characters
         for c in text:
-            # special char!
-            if c in "\b\a":
-                if pstr != "":
-                    self.append_str(pstr, color)
-                    pstr = ""
-        
-                if c == '\b':
-                    self.delete()
+            if c == '\n':
+                self.content.cursor_down()
+            elif c == '\r':
+                self.content.cursor_return()
             else:
-                pstr = pstr + c
-
-        if pstr != "":
-            self.append_str(pstr, color)
-
-        # put something into output queue
-    def write(self, str):
-        self.ui_queue.put( str )
+                self.content.write(c)
+                
+        self.repaint();
         
-        # regular timer to check for messages in the queue
-        # and to output them locally
-    def on_timer(self):
-        while not self.ui_queue.empty():
-            # get from queue
-            e = self.ui_queue.get()
-
-            # strings are just sent
-            if type(e) is str:
-                self.append(e)
-
 class TextTouchWindow(TouchWindow):
     closed = pyqtSignal()
     
@@ -101,7 +188,14 @@ class FtcGuiApplication(TouchApplication):
         
         self.w = TextTouchWindow(program)
         self.w.closed.connect(self.on_close)
-
+        
+        #self.menu=self.w.addMenu()
+        #self.menu.setStyleSheet("font-size: 24px;")
+        #self.m_inc = self.menu.addAction("Bigger")
+        #self.m_inc.triggered.connect(self.on_menu_inc)
+        #self.m_dec = self.menu.addAction("Smaller")
+        #self.m_dec.triggered.connect(self.on_menu_dec)
+        
         self.text = TextWidget(self.w)
         self.w.setCentralWidget(self.text)
 
@@ -120,6 +214,12 @@ class FtcGuiApplication(TouchApplication):
         self.w.show() 
         self.exec_()
 
+    def on_menu_inc(self):
+        self.text.resizeFont(1)
+        
+    def on_menu_dec(self):
+        self.text.resizeFont(-1)
+        
     def app_is_running(self):
         if self.app_process == None:
             return False
