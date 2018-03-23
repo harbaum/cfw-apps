@@ -6,7 +6,7 @@ from TouchStyle import *
 import configparser
 
 # a fixed size text widget
-class TextWidget(QWidget):
+class ConsoleWidget(QWidget):
     class Content(object):
         def __init__(self):
             self.w = 0
@@ -94,6 +94,7 @@ class TextWidget(QWidget):
         self.setSizePolicy(qsp)
         self.content = self.Content()
         self.fontSize = None
+        self.bgColor = None
         
         self.readConfig()
         
@@ -102,7 +103,6 @@ class TextWidget(QWidget):
         
         if size != self.fontSize:
             self.fontSize = size
-            self.writeConfig()
         
             self.font = QFont("Monospace");
             self.font.setStyleHint(QFont.TypeWriter);
@@ -121,6 +121,11 @@ class TextWidget(QWidget):
             config = configparser.ConfigParser()
             config.read(os.path.join(path, "console.ini"))
             self.setFont(int(config.get('font','size')))
+            bgcolor = config.get('font','bgcolor')
+            if bgcolor == "none":
+                self.bgColor = None
+            else:
+                self.bgColor = QColor(bgcolor)
             
         except Exception:
             # if anything goes wrong setup defaults
@@ -133,6 +138,11 @@ class TextWidget(QWidget):
         config = configparser.ConfigParser()
         config.add_section('font')
         config.set('font','size', str(self.fontSize))
+        if self.bgColor:
+            config.set('font','bgcolor', self.bgColor.name())
+        else:
+            config.set('font','bgcolor', "none")
+                       
         config.write(cfgfile)
         cfgfile.close()
             
@@ -149,7 +159,8 @@ class TextWidget(QWidget):
         painter.begin(self)
 
         # optional set background
-        # painter.fillRect(event.rect(), QColor("black"));
+        if self.bgColor != None:
+            painter.fillRect(event.rect(), self.bgColor)
              
         painter.setFont(self.font)
 
@@ -169,6 +180,11 @@ class TextWidget(QWidget):
                 
         painter.end()
 
+    def setBlackBg(self, on):
+        if on: self.bgColor = QColor("black")
+        else:  self.bgColor = None
+        self.repaint()
+        
     def resizeFont(self, step):
         if self.fontSize + step:
             self.setFont(self.fontSize + step)
@@ -208,6 +224,7 @@ class FtcGuiApplication(TouchApplication):
         program = None
         files = [f for f in os.listdir(path) if os.path.isfile(f)]
         for f in files:
+            # file must not be this script itself
             if f != os.path.basename(__file__):
                 if f.endswith(".py"):
                     program = f
@@ -216,15 +233,19 @@ class FtcGuiApplication(TouchApplication):
         self.w = TextTouchWindow(program)
         self.w.closed.connect(self.on_close)
         
+        self.console = ConsoleWidget(self.w)
+        self.w.setCentralWidget(self.console)
+
         self.menu=self.w.addMenu()
         self.menu.setStyleSheet("font-size: 24px;")
-        self.m_inc = self.menu.addAction("Bigger font")
-        self.m_inc.triggered.connect(self.on_menu_inc)
-        self.m_dec = self.menu.addAction("Smaller font")
-        self.m_dec.triggered.connect(self.on_menu_dec)
-        
-        self.text = TextWidget(self.w)
-        self.w.setCentralWidget(self.text)
+        m_inc = self.menu.addAction("Bigger font")
+        m_inc.triggered.connect(self.on_menu_inc)
+        m_dec = self.menu.addAction("Smaller font")
+        m_dec.triggered.connect(self.on_menu_dec)
+        m_black = self.menu.addAction("Black bg")
+        m_black.setCheckable(True)
+        m_black.setChecked(self.console.bgColor != None)
+        m_black.triggered.connect(self.on_menu_black)
 
         if program:
             # run subprocess
@@ -236,16 +257,19 @@ class FtcGuiApplication(TouchApplication):
             self.log_timer.timeout.connect(self.on_log_timer)
             self.log_timer.start(10)
         else:
-            self.text.write("No python script found!")
+            self.console.write("No python script found!")
         
         self.w.show() 
         self.exec_()
 
+    def on_menu_black(self):
+        self.console.setBlackBg(self.sender().isChecked())
+    
     def on_menu_inc(self):
-        self.text.resizeFont(1)
+        self.console.resizeFont(1)
         
     def on_menu_dec(self):
-        self.text.resizeFont(-1)
+        self.console.resizeFont(-1)
         
     def app_is_running(self):
         if self.app_process == None:
@@ -254,6 +278,8 @@ class FtcGuiApplication(TouchApplication):
         return self.app_process.poll() == None
     
     def on_close(self):
+        self.console.writeConfig()
+            
         if self.app_is_running():
             self.app_process.terminate()
             self.app_process.wait()
@@ -263,12 +289,12 @@ class FtcGuiApplication(TouchApplication):
         if select.select([self.log_master_fd], [], [], 0)[0]:
             output = os.read(self.log_master_fd, 100)
             if output: 
-                self.text.write(str(output, "utf-8"))
+                self.console.write(str(output, "utf-8"))
         else:
             # check if process is still alive
             if not self.app_is_running():
                 if self.app_process.returncode:
-                    self.text.write("Application ended with return value " + str(self.app_process.returncode) + "\n")
+                    self.console.write("Application ended with return value " + str(self.app_process.returncode) + "\n")
 
                 # close any open ptys
                 os.close(self.log_master_fd)
