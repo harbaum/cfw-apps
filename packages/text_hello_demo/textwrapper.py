@@ -3,6 +3,7 @@
 
 import sys, queue, pty, subprocess, select, os
 from TouchStyle import *
+import configparser
 
 # a fixed size text widget
 class TextWidget(QWidget):
@@ -92,23 +93,49 @@ class TextWidget(QWidget):
         qsp = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setSizePolicy(qsp)
         self.content = self.Content()
-
-        self.setFont(8)
-
+        self.fontSize = None
+        
+        self.readConfig()
+        
     def setFont(self, size):
-        self.fontSize = size
+        print("Set font", size)
         
-        self.font = QFont("Monospace");
-        self.font.setStyleHint(QFont.TypeWriter);
-        self.font.setPointSize(self.fontSize)
-
-        metrics = QFontMetrics(self.font)
-        self.cw = metrics.width("M")
-        self.ch = metrics.height()
-
-        # todo: change buffer size
-        self.repaint()
+        if size != self.fontSize:
+            self.fontSize = size
+            self.writeConfig()
         
+            self.font = QFont("Monospace");
+            self.font.setStyleHint(QFont.TypeWriter);
+            self.font.setPointSize(self.fontSize)
+
+            metrics = QFontMetrics(self.font)
+            self.cw = metrics.width("M")
+            self.ch = metrics.height()
+
+            self.repaint()
+
+    def readConfig(self):
+        # try to load config from file
+        try:
+            path = os.path.dirname(os.path.realpath(__file__))
+            config = configparser.ConfigParser()
+            config.read(os.path.join(path, "console.ini"))
+            self.setFont(int(config.get('font','size')))
+            
+        except Exception:
+            # if anything goes wrong setup defaults
+            self.setFont(10)
+
+    def writeConfig(self):
+        # save the address of the device permanently
+        path = os.path.dirname(os.path.realpath(__file__))
+        cfgfile = open(os.path.join(path, "console.ini"),'w')
+        config = configparser.ConfigParser()
+        config.add_section('font')
+        config.set('font','size', str(self.fontSize))
+        config.write(cfgfile)
+        cfgfile.close()
+            
     def paintEvent(self, event):
         self.w = int(self.width()/self.cw)
         self.h = int(self.height()/self.ch)
@@ -189,12 +216,12 @@ class FtcGuiApplication(TouchApplication):
         self.w = TextTouchWindow(program)
         self.w.closed.connect(self.on_close)
         
-        #self.menu=self.w.addMenu()
-        #self.menu.setStyleSheet("font-size: 24px;")
-        #self.m_inc = self.menu.addAction("Bigger")
-        #self.m_inc.triggered.connect(self.on_menu_inc)
-        #self.m_dec = self.menu.addAction("Smaller")
-        #self.m_dec.triggered.connect(self.on_menu_dec)
+        self.menu=self.w.addMenu()
+        self.menu.setStyleSheet("font-size: 24px;")
+        self.m_inc = self.menu.addAction("Bigger font")
+        self.m_inc.triggered.connect(self.on_menu_inc)
+        self.m_dec = self.menu.addAction("Smaller font")
+        self.m_dec.triggered.connect(self.on_menu_dec)
         
         self.text = TextWidget(self.w)
         self.w.setCentralWidget(self.text)
