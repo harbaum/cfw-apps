@@ -4,7 +4,8 @@ category: Demos
 icon: icon.png
 desc: A hello world text mode app
 exec: textwrapper.py
+html: index.py
 managed: yes
 uuid: 300a6d0c-a13d-4b43-867f-4832cc98aa7c
-version: 1.0.4
+version: 1.0.5
 firmware: >=0.9

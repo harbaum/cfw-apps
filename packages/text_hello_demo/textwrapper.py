@@ -5,6 +5,9 @@ import sys, queue, pty, subprocess, select, os
 from TouchStyle import *
 import configparser
 
+# local files to be ignore when searching for python files
+IGNORE = [ "htmlhelper.py", "index.py", os.path.basename(__file__) ]
+
 # a fixed size text widget
 class ConsoleWidget(QWidget):
     class Content(object):
@@ -19,8 +22,6 @@ class ConsoleWidget(QWidget):
             self.resize(80, 25)
             
         def resize(self, w, h):
-            # print("RESIZE", w, h)
-
             # expand existing lines if requied
             if self.w < w:
                 for li in range(len(self.lines)):
@@ -42,7 +43,6 @@ class ConsoleWidget(QWidget):
             if self.h > h:
                 remove = self.h - h
                 hbelow = self.h - self.cursor[1] - 1
-                # print("Remove: ", remove, "Lines below cursor:", hbelow)
 
                 # can the whole request be satisfied by lines below cursor?
                 if remove <= hbelow:
@@ -55,7 +55,6 @@ class ConsoleWidget(QWidget):
 
                     # move cursor up by the number of lines that have
                     # been removed above it
-                    # print("Cursor y", self.cursor[1], "->", self.cursor[1] - remove)
                     self.cursor[1] = self.cursor[1] - remove
             
             self.w = w
@@ -99,8 +98,6 @@ class ConsoleWidget(QWidget):
         self.readConfig()
         
     def setFont(self, size):
-        print("Set font", size)
-        
         if size != self.fontSize:
             self.fontSize = size
         
@@ -225,7 +222,7 @@ class FtcGuiApplication(TouchApplication):
         files = [f for f in os.listdir(path) if os.path.isfile(f)]
         for f in files:
             # file must not be this script itself
-            if f != os.path.basename(__file__):
+            if not f in IGNORE:
                 if f.endswith(".py"):
                     program = f
                     break
