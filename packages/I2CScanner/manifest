@@ -1,0 +1,11 @@
+[app]
+name: I2C-Scanner
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: I2C scanner for TXT and TX-Pi
+exec: I2CScanner.py
+managed: yes
+uuid: efa50c85-2013-44e0-bdc4-f2526e937ec2
+version: 1.0
+firmware: >=0.9
