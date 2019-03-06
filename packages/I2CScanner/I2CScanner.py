@@ -26,10 +26,10 @@ class ScannerWidget(QWidget):
     def clear(self):
         for i in range(3,0x77):
             item = self.grid.itemAtPosition(1+int(i/16),1+int(i%16))
-            if item: self.grid.removeItem(item)
-        
+            if item: item.widget().deleteLater()
+
     def tick(self, index):
-        x = TinyLabel("X", self)
+        x = TinyLabel("X")
         x.setStyleSheet("QLabel { color : yellow; }");
         self.grid.addWidget(x,1+int(index/16),1+int(index%16))
             
