@@ -14,6 +14,18 @@ firmware: >=0.9
 name_de: 4Spiel
 desc_de: Vier gewinnt
 
+[I2CScanner]
+name: I2C-Scanner
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: I2C scanner for TXT and TX-Pi
+exec: I2CScanner.py
+managed: yes
+uuid: efa50c85-2013-44e0-bdc4-f2526e937ec2
+version: 1.0.1
+firmware: >=0.9
+
 [app_tutorial_1]
 name: Test
 category: Tests
@@ -257,9 +269,10 @@ category: Demos
 icon: icon.png
 desc: A hello world text mode app
 exec: textwrapper.py
+html: index.py
 managed: yes
 uuid: 300a6d0c-a13d-4b43-867f-4832cc98aa7c
-version: 1.0.1
+version: 1.0.5
 firmware: >=0.9
 
 [thermometer]
