@@ -274,6 +274,17 @@ uuid: d23829ea-326a-4f85-8627-169b0dc56669
 version: 1.0
 firmware: >=0.9.0
 
+[tx-pi-hat-test]
+name: TX-Pi HAT test
+category: Tools
+icon: icon.png
+desc: A test application for the TX-Pi HAT
+exec: tx-pi-hat-test.py
+managed: yes
+uuid: 7edd6695-cb3c-4b2c-a263-0b4c8364a368
+version: 1.0
+firmware: 0.9
+
 [wedo2test]
 name: WeDo 2.0
 category: Demos
