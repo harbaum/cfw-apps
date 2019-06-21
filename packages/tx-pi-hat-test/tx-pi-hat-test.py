@@ -3,6 +3,9 @@
 
 import sys, os
 from TxtStyle import *
+from subprocess import call
+import datetime, time
+import DS3231
 
 class TxPiHat():
     PINS = { "I1": 32, "I2": 36, "I3": 38, "I4": 40,
@@ -125,6 +128,7 @@ class InputWidget(QWidget):
         hbox.addWidget(self.lbl, 0)
         
         self.state = QLabel("Open")
+        self.state.setStyleSheet("font-size: 24px;")
         self.state.setAlignment(Qt.AlignRight)
         hbox.addWidget(self.state, 0)
         
@@ -134,6 +138,28 @@ class InputWidget(QWidget):
         if state: self.state.setText("Closed");
         else:     self.state.setText("Open");
         
+class DateTimeWidget(QWidget):
+    def __init__(self, name, parent=None):
+        super(QWidget,self).__init__(parent)
+        self.name = name
+        
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0,0,0,0)
+        
+        self.lbl = QLabel(name)
+        self.lbl.setObjectName("smalllabel")
+        hbox.addWidget(self.lbl, 0)
+        
+        self.state = QLabel("---")
+        self.state.setAlignment(Qt.AlignRight)
+        self.state.setStyleSheet("font-size: 24px;")
+        hbox.addWidget(self.state, 0)
+        
+        self.setLayout(hbox)
+
+    def set(self, s):
+        self.state.setText(s);
+      
 class FtcGuiApplication(TxtApplication):
     def __init__(self, args):
         TxtApplication.__init__(self, args)
@@ -142,12 +168,15 @@ class FtcGuiApplication(TxtApplication):
         self.w = TxtWindow("TX-Pi HAT")
 
         self.vbox = QVBoxLayout()
+        self.vbox.setSpacing(0)
 
         self.vbox.addStretch()
         self.hat = TxPiHat()
 
-        if self.hat.ok:        
-            lbl = QLabel("Motors")
+        # add GPIO area
+        if self.hat.ok:
+            lbl = QLabel("-- Motors --")
+            lbl.setAlignment(Qt.AlignCenter)
             lbl.setObjectName("smalllabel")
             self.vbox.addWidget(lbl)
         
@@ -158,28 +187,90 @@ class FtcGuiApplication(TxtApplication):
 
             self.vbox.addStretch()
 
-            lbl = QLabel("Inputs")
+            lbl = QLabel("-- Inputs --")
+            lbl.setAlignment(Qt.AlignCenter)
             lbl.setObjectName("smalllabel")
             self.vbox.addWidget(lbl)
-        
+
+            hw = QWidget()            
+            hbox = QHBoxLayout()
+            hbox.setContentsMargins(0,0,0,0)
             self.i1 = InputWidget("I1")
-            self.vbox.addWidget(self.i1)
+            hbox.addWidget(self.i1)
             self.i2 = InputWidget("I2")
-            self.vbox.addWidget(self.i2)
+            hbox.addWidget(self.i2)
+            hw.setLayout(hbox)
+            self.vbox.addWidget(hw)
+
+            hw = QWidget()            
+            hbox = QHBoxLayout()
+            hbox.setContentsMargins(0,0,0,0)
             self.i3 = InputWidget("I3")
-            self.vbox.addWidget(self.i3)
+            hbox.addWidget(self.i3)
             self.i4 = InputWidget("I4")
-            self.vbox.addWidget(self.i4)
+            hbox.addWidget(self.i4)
+            hw.setLayout(hbox)
+            self.vbox.addWidget(hw)
 
             self.timer = QTimer(self)
             self.timer.timeout.connect(self.input_update)
             self.timer.start(100)
         else:
-            lbl = QLabel("TX Pi setup failed. Is this really a Raspberry Pi?")
+            lbl = QLabel("GPIO setup failed. Is this really a Raspberry Pi?")
             lbl.setWordWrap(True)
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setObjectName("smalllabel")
             self.vbox.addWidget(lbl)
+
+        self.vbox.addStretch()
+        
+        # add DS3231 area
+        bus = os.getenv('I2C')
+        if bus == None: bus = 1   # raspberry PI default
+        else:           bus = int(bus)
+
+        try:
+            self.ds3231 = DS3231.DS3231(bus, 0x68)
+            self.ds3231._read(0)
+            self.ds3231.ackPendingAlarm()
+        except:
+            self.ds3231 = None
+
+        if self.ds3231:
+            lbl = QLabel("-- DS3231 RTC --")
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setObjectName("smalllabel")
+            self.vbox.addWidget(lbl)
+
+            self.datew = DateTimeWidget("Date")
+            self.vbox.addWidget(self.datew)
+            
+            self.timew = DateTimeWidget("Time")
+            self.vbox.addWidget(self.timew)
+
+            self.tempw = DateTimeWidget("Temp.")
+            self.vbox.addWidget(self.tempw)
+
+            self.rtimer = QTimer(self)
+            self.rtimer.timeout.connect(self.rtc_update)
+            self.rtimer.start(500)
+
+            self.set_but = QPushButton("Set from system")
+            self.set_but.setStyleSheet("font-size: 24px;")
+            self.set_but.clicked.connect(self.on_rtc_set)
+            self.vbox.addWidget(self.set_but)
+
+            self.rst_but = QPushButton("Restart in 1 min")
+            self.rst_but.setStyleSheet("font-size: 24px;")
+            self.rst_but.clicked.connect(self.on_rtc_reboot)
+            self.vbox.addWidget(self.rst_but)
+
+        else:
+            lbl = QLabel("No DS3231 RTC detected!")
+            lbl.setWordWrap(True)
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setObjectName("smalllabel")
+            self.vbox.addWidget(lbl)           
             
         self.vbox.addStretch()
         self.w.centralWidget.setLayout(self.vbox)
@@ -188,6 +279,35 @@ class FtcGuiApplication(TxtApplication):
 
         self.exec_()        
 
+    def on_rtc_set(self):
+        self.ds3231.write_now()
+
+    def on_rtc_reboot(self):
+        print("reboot")
+        self.ds3231.setAlarm(datetime.datetime.now() + datetime.timedelta(minutes=1))
+        self.notify_launcher("Shutting down ...")
+        call(["sudo", "poweroff"])
+        
+    def notify_launcher(self, msg):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            # Connect to server and send data
+            sock.connect(("localhost", 9000))
+            sock.sendall(bytes("msg {}\n".format(msg), "UTF-8"))
+        except socket.error as msg:
+            print(("Unable to connect to launcher:", msg))
+        finally:
+            sock.close()
+ 
+    def rtc_update(self):
+        d = self.ds3231.read_datetime()
+        ts = str(d.time())
+        self.timew.set(ts)
+        ds = str(d.date())
+        self.datew.set(ds)
+        ts = str(self.ds3231.getTemp()) + " °C"
+        self.tempw.set(ts)
+        
     def input_update(self):
         inp = [ [ "I1", self.i1 ],[ "I2", self.i2 ],
                 [ "I3", self.i3 ],[ "I4", self.i4 ] ]
