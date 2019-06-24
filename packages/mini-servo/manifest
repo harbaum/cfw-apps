@@ -1,0 +1,11 @@
+[app]
+name: Mini Servo
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: TX-Pi demo app for the Mini Servo Adapter
+exec: mini-servo.py
+managed: yes
+uuid: 2a5e26bf-48ef-4484-b6f5-713a064b1f8f
+version: 1.0
+firmware: >=0.9
