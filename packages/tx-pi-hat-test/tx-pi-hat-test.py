@@ -243,7 +243,7 @@ class FtcGuiApplication(TxtApplication):
         
         # add DS3231 area
         bus = os.getenv('I2C')
-        if bus == None: bus = 1   # raspberry PI default
+        if bus == None: bus = 0   # raspberry PI default
         else:           bus = int(bus)
 
         try:
@@ -252,6 +252,16 @@ class FtcGuiApplication(TxtApplication):
             self.ds3231.ackPendingAlarm()
         except:
             self.ds3231 = None
+
+        # retry on bus 1
+        if not self.ds3231:
+            try:
+                bus = 1
+                self.ds3231 = DS3231.DS3231(bus, 0x68)
+                self.ds3231._read(0)
+                self.ds3231.ackPendingAlarm()
+            except:
+                self.ds3231 = None
 
         if self.ds3231:
             lbl = QLabel("-- DS3231 RTC --")
