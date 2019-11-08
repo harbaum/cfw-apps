@@ -226,6 +226,18 @@ uuid: 74a6287b-f6d7-45bd-a467-208052a4a29b
 version: 1.0
 firmware: >=0.9.0
 
+[mini-servo]
+name: Mini Servo
+category: Tests
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: TX-Pi demo app for the Mini Servo Adapter
+exec: mini-servo.py
+managed: yes
+uuid: 2a5e26bf-48ef-4484-b6f5-713a064b1f8f
+version: 1.0
+firmware: >=0.9
+
 [pinball]
 name: Pinball
 category: Models
@@ -286,6 +298,17 @@ managed: yes
 uuid: d23829ea-326a-4f85-8627-169b0dc56669
 version: 1.0
 firmware: >=0.9.0
+
+[tx-pi-hat-test]
+name: TX-Pi HAT test
+category: Tools
+icon: icon.png
+desc: A test application for the TX-Pi HAT
+exec: tx-pi-hat-test.py
+managed: yes
+uuid: 7edd6695-cb3c-4b2c-a263-0b4c8364a368
+version: 1.0.3
+firmware: >=0.9
 
 [wedo2test]
 name: WeDo 2.0

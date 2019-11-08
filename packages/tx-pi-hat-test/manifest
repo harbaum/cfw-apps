@@ -1,0 +1,10 @@
+[app]
+name: TX-Pi HAT test
+category: Tools
+icon: icon.png
+desc: A test application for the TX-Pi HAT
+exec: tx-pi-hat-test.py
+managed: yes
+uuid: 7edd6695-cb3c-4b2c-a263-0b4c8364a368
+version: 1.0.3
+firmware: >=0.9
