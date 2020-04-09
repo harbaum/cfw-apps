@@ -16,14 +16,14 @@ desc_de: Vier gewinnt
 
 [I2CScanner]
 name: I2C-Scanner
-category: Tests
+category: Tools
 author: Till Harbaum &lt;till@harbaum.org&gt;
 icon: icon.png
 desc: I2C scanner for TXT and TX-Pi
 exec: I2CScanner.py
 managed: yes
 uuid: efa50c85-2013-44e0-bdc4-f2526e937ec2
-version: 1.0.1
+version: 1.0.2
 firmware: >=0.9
 
 [app_tutorial_1]

@@ -19,19 +19,28 @@ class ScannerWidget(QWidget):
         self.grid.setSpacing(2)
         self.grid.setContentsMargins(0,0,0,0)
 
-        for i in range(16):
-            self.grid.addWidget(TinyLabel(hex(256+16*i)[-2:], self),i+1,0)
-            self.grid.addWidget(TinyLabel(hex(i)[-1:], self),0,i+1)
+        for i in range(8):
+            self.grid.addWidget(TinyLabel(self.hexstr(i), self),0,i+1)
+                
+        for i in range(15):
+            self.grid.addWidget(TinyLabel(self.hexstr(8*i), self),i+1,0)
 
+    def hexdigit(self,i):
+        return [ '0','1','2','3','4','5','6','7',
+                 '8','9','a','b','c','d','e','f'][i]
+        
+    def hexstr(self,i):
+        return self.hexdigit(i>>4)+self.hexdigit(i&15)
+    
     def clear(self):
         for i in range(3,0x77):
-            item = self.grid.itemAtPosition(1+int(i/16),1+int(i%16))
+            item = self.grid.itemAtPosition(1+int(i/8),1+int(i%8))
             if item: item.widget().deleteLater()
 
     def tick(self, index):
-        x = TinyLabel("X")
+        x = TinyLabel(self.hexstr(index))
         x.setStyleSheet("QLabel { color : yellow; }");
-        self.grid.addWidget(x,1+int(index/16),1+int(index%16))
+        self.grid.addWidget(x,1+int(index/8),1+int(index%8))
             
 class I2cBusses:
     def __init__(self):
