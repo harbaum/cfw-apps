@@ -14,6 +14,18 @@ firmware: >=0.9
 name_de: 4Spiel
 desc_de: Vier gewinnt
 
+[BusScanner]
+name: Bus Scanner
+category: Tools
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: USB and I2C scanner for TXT and TX-Pi
+exec: BusScanner.py
+managed: yes
+uuid: 8963108c-0059-4a99-8137-092f80b6ab6d
+version: 1.0.3
+firmware: >=0.9
+
 [I2CScanner]
 name: I2C-Scanner
 category: Tools
