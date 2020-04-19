@@ -1,0 +1,11 @@
+[app]
+name: Shell
+category: Tools
+author: Till Harbaum &lt;till@harbaum.org&gt;
+icon: icon.png
+desc: An embedded xterm
+exec: shell.py
+managed: yes
+uuid: 0480ab5d-0263-441a-b7d2-49199fe36f54
+version: 1.0
+firmware: >=0.9
