@@ -25,10 +25,11 @@ class CamWidget(QWidget):
         # initialize camera
         print("CAM", CAM_DEV)
         self.cap = cv2.VideoCapture(CAM_DEV)
-        if self.cap.isOpened():
-            self.cap.set(3,WIDTH)
-            self.cap.set(4,HEIGHT)
-            self.cap.set(5,FPS)
+        # the TXT has problems dealing with full sized frames over USB
+        if self.cap.isOpened() and not os.path.isfile('/etc/tx-pi'):
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH,WIDTH)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT,HEIGHT)
+            self.cap.set(cv2.CAP_PROP_FPS,FPS)
 
         print("CAP:", self.cap, self.cap.isOpened())
             
