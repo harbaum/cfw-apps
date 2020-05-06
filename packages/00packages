@@ -169,18 +169,6 @@ uuid: eb075835-cb00-4686-9332-ec902a1ed0c0
 version: 1.0
 firmware: 0.9
 
-[cube]
-name: Cube
-category: Models
-author: Till Harbaum &lt;till@harbaum.org&gt;
-icon: icon.png
-desc: Rubiks Cube solver
-exec: cube.py
-managed: yes
-uuid: be743ea4-187b-43d8-8f7b-1779fa589bec
-version: 1.3
-firmware: >=0.9.0
-
 [face]
 name: Face
 category: Demo
@@ -286,18 +274,6 @@ managed: yes
 uuid: 3682679c-9438-4516-a528-83de5e27e5e5
 version: 1.0.1
 firmware: >=0.9.0
-
-[shell]
-name: Shell
-category: Tools
-author: Till Harbaum &lt;till@harbaum.org&gt;
-icon: icon.png
-desc: An embedded xterm
-exec: shell.py
-managed: yes
-uuid: 0480ab5d-0263-441a-b7d2-49199fe36f54
-version: 1.0
-firmware: >=0.9
 
 [text_hello_demo]
 name: Hello
